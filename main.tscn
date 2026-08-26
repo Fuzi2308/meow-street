@@ -1,0 +1,1029 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="1_main"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0666667, 0.0941176, 0.152941, 1)
+
+[node name="PageMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="PageMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="PageMargin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 42
+text = "MEOW STREET"
+horizontal_alignment = 1
+
+[node name="DateLabel" type="Label" parent="PageMargin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Rok 1 • Miesiąc 1 • Tydzień 1/4 • Rozdział 1/12"
+horizontal_alignment = 1
+
+[node name="CashLabel" type="Label" parent="PageMargin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Gotówka: 2 500 M$"
+horizontal_alignment = 1
+
+[node name="NetWorthLabel" type="Label" parent="PageMargin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "Majątek netto: 2 500 M$"
+horizontal_alignment = 1
+
+[node name="Pages" type="TabContainer" parent="PageMargin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+tabs_visible = false
+
+[node name="MarketPage" type="VBoxContainer" parent="PageMargin/Content/Pages"]
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 0
+
+[node name="NewsLabel" type="Label" parent="PageMargin/Content/Pages/MarketPage"]
+custom_minimum_size = Vector2(0, 86)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "WIADOMOŚĆ TYGODNIA"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="MarketScroll" type="ScrollContainer" parent="PageMargin/Content/Pages/MarketPage"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="CompanyList" type="VBoxContainer" parent="PageMargin/Content/Pages/MarketPage/MarketScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="SavingsPage" type="VBoxContainer" parent="PageMargin/Content/Pages"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+metadata/_tab_index = 1
+
+[node name="SavingsTitleLabel" type="Label" parent="PageMargin/Content/Pages/SavingsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "KONTO OSZCZĘDNOŚCIOWE"
+horizontal_alignment = 1
+
+[node name="SavingsDescriptionLabel" type="Label" parent="PageMargin/Content/Pages/SavingsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Odkładaj regularnie i zbuduj poduszkę bezpieczeństwa na nieprzewidziane wydatki."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SavingsBalanceLabel" type="Label" parent="PageMargin/Content/Pages/SavingsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Saldo: 0 M$"
+horizontal_alignment = 1
+
+[node name="SavingsRateLabel" type="Label" parent="PageMargin/Content/Pages/SavingsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Oprocentowanie: 0,5% miesięcznie"
+horizontal_alignment = 1
+
+[node name="SavingsAmountRow" type="HBoxContainer" parent="PageMargin/Content/Pages/SavingsPage"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="SavingsAmountLabel" type="Label" parent="PageMargin/Content/Pages/SavingsPage/SavingsAmountRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "KWOTA (M$)"
+vertical_alignment = 1
+
+[node name="SavingsAmountInput" type="LineEdit" parent="PageMargin/Content/Pages/SavingsPage/SavingsAmountRow"]
+custom_minimum_size = Vector2(260, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "500"
+placeholder_text = "np. 500"
+max_length = 7
+
+[node name="SavingsButtons" type="HBoxContainer" parent="PageMargin/Content/Pages/SavingsPage"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="DepositButton" type="Button" parent="PageMargin/Content/Pages/SavingsPage/SavingsButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "WPŁAĆ"
+
+[node name="WithdrawButton" type="Button" parent="PageMargin/Content/Pages/SavingsPage/SavingsButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "WYPŁAĆ"
+
+[node name="SavingsTipLabel" type="Label" parent="PageMargin/Content/Pages/SavingsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Minimalna operacja: 50 M$. Wpłata co najmniej 100 M$ liczy się do celu regularności. Cel poduszki: 5 400 M$."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="PortfolioPage" type="VBoxContainer" parent="PageMargin/Content/Pages"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 2
+
+[node name="PortfolioTitleLabel" type="Label" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 27
+text = "TWÓJ PORTFEL"
+horizontal_alignment = 1
+
+[node name="PortfolioCashLabel" type="Label" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Gotówka: 2 500 M$ (100%)"
+horizontal_alignment = 1
+
+[node name="PortfolioSavingsLabel" type="Label" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Oszczędności: 0 M$ (0%)"
+horizontal_alignment = 1
+
+[node name="PortfolioCompaniesLabel" type="Label" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Wartość akcji: 0 M$"
+horizontal_alignment = 1
+
+[node name="PortfolioPerformanceLabel" type="Label" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Wynik inwestycji: 0 M$"
+horizontal_alignment = 1
+
+[node name="PortfolioDebtLabel" type="Label" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Dług: 0 M$"
+horizontal_alignment = 1
+
+[node name="PortfolioSeparator" type="HSeparator" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+
+[node name="PortfolioTotalLabel" type="Label" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Majątek netto: 2 500 M$"
+horizontal_alignment = 1
+
+[node name="PortfolioRiskLabel" type="Label" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Ocena portfela pojawi się tutaj."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="PortfolioScroll" type="ScrollContainer" parent="PageMargin/Content/Pages/PortfolioPage"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="PortfolioCompanyList" type="VBoxContainer" parent="PageMargin/Content/Pages/PortfolioPage/PortfolioScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="BudgetPage" type="VBoxContainer" parent="PageMargin/Content/Pages"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 9
+metadata/_tab_index = 3
+
+[node name="BudgetTitleLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 27
+text = "MIESIĘCZNY BUDŻET"
+horizontal_alignment = 1
+
+[node name="BudgetIncomeLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Dochód: +2 500 M$"
+horizontal_alignment = 1
+
+[node name="BudgetExpensesLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Stałe wydatki: -1 800 M$"
+horizontal_alignment = 1
+
+[node name="BudgetSurplusLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Miesięczna nadwyżka: +700 M$"
+horizontal_alignment = 1
+
+[node name="BudgetSeparator" type="HSeparator" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+
+[node name="EmergencyFundLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Poduszka na koncie: 0 / 5 400 M$"
+horizontal_alignment = 1
+
+[node name="EmergencyFundProgress" type="ProgressBar" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+max_value = 5400.0
+
+[node name="BudgetAdviceLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Cel: odłóż środki pokrywające trzy miesiące wydatków."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="BudgetDebtSeparator" type="HSeparator" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+
+[node name="BudgetDebtLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Dług: 0 M$"
+horizontal_alignment = 1
+
+[node name="BudgetDebtInterestLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Brak aktywnego długu i rat tygodniowych."
+horizontal_alignment = 1
+
+[node name="PayDebtButton" type="Button" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "NADPŁAĆ DŁUG"
+
+[node name="LoanOfferSeparator" type="HSeparator" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+
+[node name="LoanOfferTitleLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "POŻYCZKA GOTÓWKOWA"
+horizontal_alignment = 1
+
+[node name="LoanOfferStatusLabel" type="Label" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "2 000 M$ • rata kapitału 250 M$ tygodniowo • odsetki 1% tygodniowo"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="TakePlayerLoanButton" type="Button" parent="PageMargin/Content/Pages/BudgetPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "WEŹ 2 000 M$ POŻYCZKI"
+
+[node name="GoalsPage" type="VBoxContainer" parent="PageMargin/Content/Pages"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 14
+metadata/_tab_index = 4
+
+[node name="GoalsTitleLabel" type="Label" parent="PageMargin/Content/Pages/GoalsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 27
+text = "CELE ROZDZIAŁU"
+horizontal_alignment = 1
+
+[node name="ChapterProgressLabel" type="Label" parent="PageMargin/Content/Pages/GoalsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "ROZDZIAŁ 1: PIERWSZE KROKI • TYDZIEŃ 1/12"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ChapterProgressBar" type="ProgressBar" parent="PageMargin/Content/Pages/GoalsPage"]
+layout_mode = 2
+max_value = 12.0
+
+[node name="GoalsListLabel" type="Label" parent="PageMargin/Content/Pages/GoalsPage"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 18
+text = "Lista celów pojawi się tutaj."
+autowrap_mode = 3
+
+[node name="GoalsAdviceLabel" type="Label" parent="PageMargin/Content/Pages/GoalsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Nie musisz wykonać wszystkich celów przy pierwszym podejściu."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ReportLabel" type="Label" parent="PageMargin/Content"]
+custom_minimum_size = Vector2(0, 112)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Podejmij decyzję finansową i zakończ tydzień."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="EndWeekButton" type="Button" parent="PageMargin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "ZAKOŃCZ TYDZIEŃ"
+
+[node name="BottomNavigation" type="HBoxContainer" parent="PageMargin/Content"]
+custom_minimum_size = Vector2(0, 68)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MarketNavButton" type="Button" parent="PageMargin/Content/BottomNavigation"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_pressed = true
+theme_override_font_sizes/font_size = 14
+text = "RYNEK"
+
+[node name="PortfolioNavButton" type="Button" parent="PageMargin/Content/BottomNavigation"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+theme_override_font_sizes/font_size = 14
+text = "PORTFEL"
+
+[node name="SavingsNavButton" type="Button" parent="PageMargin/Content/BottomNavigation"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+theme_override_font_sizes/font_size = 14
+text = "KONTO"
+
+[node name="BudgetNavButton" type="Button" parent="PageMargin/Content/BottomNavigation"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+theme_override_font_sizes/font_size = 14
+text = "BUDŻET"
+
+[node name="GoalsNavButton" type="Button" parent="PageMargin/Content/BottomNavigation"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+theme_override_font_sizes/font_size = 14
+text = "CELE"
+
+[node name="StockDetailOverlay" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.0352941, 0.0509804, 0.0901961, 1)
+
+[node name="DetailMargin" type="MarginContainer" parent="StockDetailOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 28
+
+[node name="DetailContent" type="VBoxContainer" parent="StockDetailOverlay/DetailMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DetailTopBar" type="HBoxContainer" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DetailBackButton" type="Button" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailTopBar"]
+custom_minimum_size = Vector2(120, 58)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "‹ WRÓĆ"
+
+[node name="DetailAppLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailTopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 19
+text = "MEOW STREET • RYNEK"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="DetailTitleLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "NAZWA SPÓŁKI"
+horizontal_alignment = 1
+
+[node name="DetailSectorLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Sektor • Ryzyko"
+horizontal_alignment = 1
+
+[node name="DetailPriceLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 38
+text = "0 M$"
+horizontal_alignment = 1
+
+[node name="DetailChangeLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Zmiana tygodniowa: 0%"
+horizontal_alignment = 1
+
+[node name="ChartPanel" type="PanelContainer" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+
+[node name="ChartArea" type="Control" parent="StockDetailOverlay/DetailMargin/DetailContent/ChartPanel"]
+layout_mode = 2
+
+[node name="ChartBackground" type="ColorRect" parent="StockDetailOverlay/DetailMargin/DetailContent/ChartPanel/ChartArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0588235, 0.0823529, 0.133333, 1)
+
+[node name="GridLine1" type="ColorRect" parent="StockDetailOverlay/DetailMargin/DetailContent/ChartPanel/ChartArea"]
+layout_mode = 1
+anchor_left = 0.04
+anchor_top = 0.25
+anchor_right = 0.96
+anchor_bottom = 0.25
+offset_bottom = 1.0
+mouse_filter = 2
+color = Color(0.25, 0.3, 0.4, 0.45)
+
+[node name="GridLine2" type="ColorRect" parent="StockDetailOverlay/DetailMargin/DetailContent/ChartPanel/ChartArea"]
+layout_mode = 1
+anchor_left = 0.04
+anchor_top = 0.5
+anchor_right = 0.96
+anchor_bottom = 0.5
+offset_bottom = 1.0
+mouse_filter = 2
+color = Color(0.25, 0.3, 0.4, 0.45)
+
+[node name="GridLine3" type="ColorRect" parent="StockDetailOverlay/DetailMargin/DetailContent/ChartPanel/ChartArea"]
+layout_mode = 1
+anchor_left = 0.04
+anchor_top = 0.75
+anchor_right = 0.96
+anchor_bottom = 0.75
+offset_bottom = 1.0
+mouse_filter = 2
+color = Color(0.25, 0.3, 0.4, 0.45)
+
+[node name="PriceLine" type="Line2D" parent="StockDetailOverlay/DetailMargin/DetailContent/ChartPanel/ChartArea"]
+width = 5.0
+default_color = Color(0.25098, 0.866667, 0.521569, 1)
+begin_cap_mode = 2
+end_cap_mode = 2
+joint_mode = 2
+antialiased = true
+
+[node name="DetailHistoryLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Historia ceny: 1 tydzień"
+horizontal_alignment = 1
+
+[node name="DetailPositionPanel" type="PanelContainer" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+
+[node name="DetailPositionMargin" type="MarginContainer" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailPositionPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="DetailStats" type="VBoxContainer" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailPositionPanel/DetailPositionMargin"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="DetailSharesLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailPositionPanel/DetailPositionMargin/DetailStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Posiadane akcje: 0"
+
+[node name="DetailAverageLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailPositionPanel/DetailPositionMargin/DetailStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Średnia cena zakupu: —"
+
+[node name="DetailInvestedLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailPositionPanel/DetailPositionMargin/DetailStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Zainwestowano: 0 M$"
+
+[node name="DetailUnrealizedLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailPositionPanel/DetailPositionMargin/DetailStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Niezrealizowany wynik: 0 M$"
+
+[node name="DetailRealizedLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailPositionPanel/DetailPositionMargin/DetailStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Wynik ze sprzedaży: 0 M$"
+
+[node name="DetailQuantityRow" type="HBoxContainer" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="DetailQuantityLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailQuantityRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "LICZBA AKCJI"
+vertical_alignment = 1
+
+[node name="DetailQuantityInput" type="LineEdit" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailQuantityRow"]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "1"
+placeholder_text = "np. 5"
+max_length = 6
+
+[node name="DetailTradeButtons" type="HBoxContainer" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DetailBuyButton" type="Button" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailTradeButtons"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 21
+text = "KUP 1 AKCJĘ"
+
+[node name="DetailSellButton" type="Button" parent="StockDetailOverlay/DetailMargin/DetailContent/DetailTradeButtons"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 21
+text = "SPRZEDAJ 1"
+
+[node name="DetailActionLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Wybierz kupno albo sprzedaż."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="DetailHintLabel" type="Label" parent="StockDetailOverlay/DetailMargin/DetailContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Wykres obejmuje maksymalnie 12 ostatnich tygodni. Wynik niezrealizowany zmienia się razem z ceną akcji."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StartOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.0352941, 0.0509804, 0.0901961, 1)
+
+[node name="StartCenter" type="CenterContainer" parent="StartOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="StartPanel" type="PanelContainer" parent="StartOverlay/StartCenter"]
+custom_minimum_size = Vector2(610, 0)
+layout_mode = 2
+
+[node name="StartMargin" type="MarginContainer" parent="StartOverlay/StartCenter/StartPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 42
+theme_override_constants/margin_top = 42
+theme_override_constants/margin_right = 42
+theme_override_constants/margin_bottom = 42
+
+[node name="StartContent" type="VBoxContainer" parent="StartOverlay/StartCenter/StartPanel/StartMargin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="StartTitleLabel" type="Label" parent="StartOverlay/StartCenter/StartPanel/StartMargin/StartContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 42
+text = "MEOW STREET"
+horizontal_alignment = 1
+
+[node name="StartSubtitleLabel" type="Label" parent="StartOverlay/StartCenter/StartPanel/StartMargin/StartContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Podejmuj decyzje, obserwuj konsekwencje\ni ucz się zarządzania pieniędzmi."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StartSeparator" type="HSeparator" parent="StartOverlay/StartCenter/StartPanel/StartMargin/StartContent"]
+layout_mode = 2
+
+[node name="ContinueButton" type="Button" parent="StartOverlay/StartCenter/StartPanel/StartMargin/StartContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "KONTYNUUJ"
+
+[node name="NewGameButton" type="Button" parent="StartOverlay/StartCenter/StartPanel/StartMargin/StartContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "NOWA GRA"
+
+[node name="RepeatTutorialButton" type="Button" parent="StartOverlay/StartCenter/StartPanel/StartMargin/StartContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "POWTÓRZ SAMOUCZEK"
+
+[node name="DeleteSaveButton" type="Button" parent="StartOverlay/StartCenter/StartPanel/StartMargin/StartContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "USUŃ ZAPIS"
+
+[node name="StartStatusLabel" type="Label" parent="StartOverlay/StartCenter/StartPanel/StartMargin/StartContent"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Sprawdzanie zapisu gry..."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="EventOverlay" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.82)
+
+[node name="EventCenter" type="CenterContainer" parent="EventOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EventPanel" type="PanelContainer" parent="EventOverlay/EventCenter"]
+custom_minimum_size = Vector2(610, 0)
+layout_mode = 2
+
+[node name="EventMargin" type="MarginContainer" parent="EventOverlay/EventCenter/EventPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="EventContent" type="VBoxContainer" parent="EventOverlay/EventCenter/EventPanel/EventMargin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="EventTitleLabel" type="Label" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "WYDARZENIE"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="EventDescriptionLabel" type="Label" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Opis wydarzenia."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="EventCostLabel" type="Label" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Koszt: 0 M$"
+horizontal_alignment = 1
+
+[node name="PayCashButton" type="Button" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ZAPŁAĆ GOTÓWKĄ"
+
+[node name="PaySavingsButton" type="Button" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ZAPŁAĆ Z OSZCZĘDNOŚCI"
+
+[node name="TakeLoanButton" type="Button" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "WEŹ POŻYCZKĘ"
+
+[node name="RestartChapterButton" type="Button" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ZAGRAJ ROZDZIAŁ PONOWNIE"
+
+[node name="WeekSummaryOverlay" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.0352941, 0.0509804, 0.0901961, 1)
+
+[node name="SummaryMargin" type="MarginContainer" parent="WeekSummaryOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 28
+
+[node name="SummaryContent" type="VBoxContainer" parent="WeekSummaryOverlay/SummaryMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SummaryTitleLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "PODSUMOWANIE TYGODNIA"
+horizontal_alignment = 1
+
+[node name="SummaryWeekLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Tydzień 1 z 12"
+horizontal_alignment = 1
+
+[node name="SummaryNewsPanel" type="PanelContainer" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent"]
+layout_mode = 2
+
+[node name="SummaryNewsMargin" type="MarginContainer" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryNewsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="SummaryNewsContent" type="VBoxContainer" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryNewsPanel/SummaryNewsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SummaryNewsCaptionLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryNewsPanel/SummaryNewsMargin/SummaryNewsContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "CO WYDARZYŁO SIĘ NA RYNKU?"
+horizontal_alignment = 1
+
+[node name="SummaryHeadlineLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryNewsPanel/SummaryNewsMargin/SummaryNewsContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "Wiadomość tygodnia"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SummaryScroll" type="ScrollContainer" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="SummaryBody" type="VBoxContainer" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="SummaryMarketLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ZMIANY CEN"
+horizontal_alignment = 1
+
+[node name="SummaryCompanyList" type="VBoxContainer" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SummarySeparator" type="HSeparator" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+layout_mode = 2
+
+[node name="SummaryPortfolioResultLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Zmiana Twojego portfela: 0 M$"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SummaryLoanLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Rata pożyczki"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SummaryMonthlyLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Rozliczenie miesiąca"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SummaryExplanationLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Wyjaśnienie reakcji rynku."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SummaryEducationLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Wskazówka edukacyjna."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SummaryContinueButton" type="Button" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent"]
+custom_minimum_size = Vector2(0, 68)
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "PRZEJDŹ DALEJ"
+
+[node name="NewGameConfirmDialog" type="ConfirmationDialog" parent="."]
+title = "Rozpocząć nową grę?"
+dialog_text = "Dotychczasowy zapis zostanie zastąpiony."
+
+[node name="DeleteSaveConfirmDialog" type="ConfirmationDialog" parent="."]
+title = "Usunąć zapis?"
+dialog_text = "Usuniętego zapisu nie będzie można odzyskać."
+
+[node name="TutorialOverlay" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.72)
+
+[node name="TutorialCenter" type="CenterContainer" parent="TutorialOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TutorialPanel" type="PanelContainer" parent="TutorialOverlay/TutorialCenter"]
+custom_minimum_size = Vector2(620, 0)
+layout_mode = 2
+
+[node name="TutorialMargin" type="MarginContainer" parent="TutorialOverlay/TutorialCenter/TutorialPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 32
+
+[node name="TutorialContent" type="VBoxContainer" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="GuideLabel" type="Label" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "KOCI PRZEWODNIK • MEOW STREET"
+horizontal_alignment = 1
+
+[node name="TutorialTitleLabel" type="Label" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "WITAJ W MEOW STREET"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="TutorialStepLabel" type="Label" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "KROK 1 Z 8"
+horizontal_alignment = 1
+
+[node name="TutorialProgressBar" type="ProgressBar" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent"]
+layout_mode = 2
+max_value = 8.0
+value = 1.0
+show_percentage = false
+
+[node name="TutorialDescriptionLabel" type="Label" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent"]
+custom_minimum_size = Vector2(0, 190)
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "Opis kroku samouczka."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="TutorialHintLabel" type="Label" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "W tle pokazujemy ekran opisywany w tym kroku."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="TutorialButtons" type="HBoxContainer" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TutorialBackButton" type="Button" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent/TutorialButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "WSTECZ"
+
+[node name="TutorialNextButton" type="Button" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent/TutorialButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "DALEJ"
+
+[node name="TutorialSkipButton" type="Button" parent="TutorialOverlay/TutorialCenter/TutorialPanel/TutorialMargin/TutorialContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "POMIŃ SAMOUCZEK"
