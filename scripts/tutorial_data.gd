@@ -4,7 +4,7 @@ extends RefCounted
 const STEPS = [
 	{
 		"title": "WITAJ W MEOW STREET",
-		"text": "Rozpoczynasz z gotówką 2 500 M$. Pierwszy rozdział trwa 12 tygodni. Twoim zadaniem jest podejmowanie decyzji, obserwowanie ich skutków i rozwijanie swojej sytuacji finansowej.",
+		"text": "Rozpoczynasz z gotówką 2 500 M$. Pierwszy rozdział trwa pełny rok: 48 tygodni, czyli 12 czterotygodniowych miesięcy. Twoim zadaniem jest podejmowanie decyzji, obserwowanie ich skutków i rozwijanie swojej sytuacji finansowej.",
 		"screen": "budget"
 	},
 	{
@@ -38,8 +38,13 @@ const STEPS = [
 		"screen": "budget"
 	},
 	{
+		"title": "DECYZJE I KONSEKWENCJE",
+		"text": "Co cztery tygodnie pojawi się większa sytuacja fabularna z trzema odpowiedziami. Część skutków zobaczysz od razu, a inne dopiero po kilku tygodniach. Czytaj warunki i porównuj ryzyko.",
+		"screen": "goals"
+	},
+	{
 		"title": "CZAS NA PIERWSZĄ DECYZJĘ",
-		"text": "Używaj dolnego menu jak w aplikacji finansowej. Sprawdzaj wiadomości, nie wydawaj wszystkich pieniędzy bez planu i pamiętaj o poduszce bezpieczeństwa. Gra zapisuje się automatycznie.",
+		"text": "Używaj dolnego menu jak w aplikacji finansowej. Po samouczku od razu podejmiesz pierwszą decyzję fabularną. Sprawdzaj wiadomości, nie wydawaj wszystkich pieniędzy bez planu i pamiętaj o poduszce bezpieczeństwa. Gra zapisuje się automatycznie.",
 		"screen": "market"
 	}
 ]

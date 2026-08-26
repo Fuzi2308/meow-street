@@ -5,10 +5,10 @@ signal state_changed
 
 
 const SAVE_PATH: String = "user://meow_street_save.json"
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 
 const STARTING_CASH: int = 2500
-const CHAPTER_LENGTH_WEEKS: int = 12
+const CHAPTER_LENGTH_WEEKS: int = 48
 
 const MONTHLY_INCOME: int = 2500
 const MONTHLY_EXPENSES: int = 1800
@@ -18,8 +18,9 @@ const SAVINGS_MIN_AMOUNT: int = 50
 const REGULAR_SAVING_MIN_AMOUNT: int = 100
 const SAVINGS_MONTHLY_RATE: float = 0.005
 const EMERGENCY_FUND_TARGET: int = 5400
-const REQUIRED_SAVING_WEEKS: int = 3
+const REQUIRED_SAVING_WEEKS: int = 12
 const REQUIRED_COMPANIES: int = 3
+const REQUIRED_LIFE_EVENTS: int = 4
 
 const DEBT_REPAY_AMOUNT: int = 500
 const PLAYER_LOAN_AMOUNT: int = 2000
@@ -29,6 +30,7 @@ const MAX_VOLUNTARY_LOANS: int = 1
 
 
 const MarketData = preload("res://scripts/market_data.gd")
+const StoryData = preload("res://scripts/story_data.gd")
 
 const COMPANY_ORDER = MarketData.COMPANY_ORDER
 const COMPANY_DEFINITIONS = MarketData.COMPANY_DEFINITIONS
@@ -45,6 +47,7 @@ var cash: int = STARTING_CASH
 var savings_balance: float = 0.0
 var debt: int = 0
 var monthly_income_bonus: int = 0
+var monthly_expense_modifier: int = 0
 var voluntary_loans_taken: int = 0
 var loan_payments_made: int = 0
 var missed_loan_payments: int = 0
@@ -58,6 +61,12 @@ var next_life_event_week: int = 3
 var last_life_event_index: int = -1
 var used_life_event_indices: Array = []
 var life_events_resolved: int = 0
+
+var pending_story_decision: Dictionary = {}
+var story_decision_history: Array = []
+var scheduled_consequences: Array = []
+var decision_feedback: Dictionary = {}
+var story_decisions_resolved: int = 0
 
 var saving_weeks: Dictionary = {}
 var first_stock_bought: bool = false
@@ -85,6 +94,7 @@ func reset_game(
 	savings_balance = 0.0
 	debt = 0
 	monthly_income_bonus = 0
+	monthly_expense_modifier = 0
 	voluntary_loans_taken = 0
 	loan_payments_made = 0
 	missed_loan_payments = 0
@@ -95,10 +105,16 @@ func reset_game(
 	_choose_next_market_event()
 
 	pending_life_event = {}
-	next_life_event_week = randi_range(3, 4)
+	next_life_event_week = randi_range(5, 7)
 	last_life_event_index = -1
 	used_life_event_indices.clear()
 	life_events_resolved = 0
+
+	pending_story_decision = {}
+	story_decision_history.clear()
+	scheduled_consequences.clear()
+	decision_feedback = {}
+	story_decisions_resolved = 0
 
 	saving_weeks.clear()
 	first_stock_bought = false
@@ -143,6 +159,7 @@ func save_game() -> bool:
 		"savings_balance": savings_balance,
 		"debt": debt,
 		"monthly_income_bonus": monthly_income_bonus,
+		"monthly_expense_modifier": monthly_expense_modifier,
 		"voluntary_loans_taken": voluntary_loans_taken,
 		"loan_payments_made": loan_payments_made,
 		"missed_loan_payments": missed_loan_payments,
@@ -154,6 +171,11 @@ func save_game() -> bool:
 		"last_life_event_index": last_life_event_index,
 		"used_life_event_indices": used_life_event_indices,
 		"life_events_resolved": life_events_resolved,
+		"pending_story_decision": pending_story_decision,
+		"story_decision_history": story_decision_history,
+		"scheduled_consequences": scheduled_consequences,
+		"decision_feedback": decision_feedback,
+		"story_decisions_resolved": story_decisions_resolved,
 		"saving_week_numbers": saving_week_numbers,
 		"first_stock_bought": first_stock_bought,
 		"chapter_finished": chapter_finished,
@@ -217,6 +239,7 @@ func _apply_save_data(save_data: Dictionary) -> void:
 	savings_balance = float(save_data.get("savings_balance", 0.0))
 	debt = int(save_data.get("debt", 0))
 	monthly_income_bonus = int(save_data.get("monthly_income_bonus", 0))
+	monthly_expense_modifier = int(save_data.get("monthly_expense_modifier", 0))
 	voluntary_loans_taken = int(save_data.get("voluntary_loans_taken", 0))
 	loan_payments_made = int(save_data.get("loan_payments_made", 0))
 	missed_loan_payments = int(save_data.get("missed_loan_payments", 0))
@@ -289,6 +312,11 @@ func _apply_save_data(save_data: Dictionary) -> void:
 		used_life_event_indices.append(int(index_value))
 
 	life_events_resolved = int(save_data.get("life_events_resolved", 0))
+	pending_story_decision = save_data.get("pending_story_decision", {})
+	story_decision_history = save_data.get("story_decision_history", [])
+	scheduled_consequences = save_data.get("scheduled_consequences", [])
+	decision_feedback = save_data.get("decision_feedback", {})
+	story_decisions_resolved = int(save_data.get("story_decisions_resolved", story_decision_history.size()))
 
 	saving_weeks.clear()
 	var saved_saving_weeks: Array = save_data.get("saving_week_numbers", [])
@@ -298,8 +326,11 @@ func _apply_save_data(save_data: Dictionary) -> void:
 
 	first_stock_bought = bool(save_data.get("first_stock_bought", false))
 	chapter_finished = bool(save_data.get("chapter_finished", false))
+	if int(save_data.get("save_version", SAVE_VERSION)) < 5:
+		chapter_finished = total_weeks_passed >= CHAPTER_LENGTH_WEEKS
 	tutorial_step = max(0, int(save_data.get("tutorial_step", 0)))
 	tutorial_completed = bool(save_data.get("tutorial_completed", false))
+	_trigger_story_decision_if_needed()
 
 
 func _commit_state() -> void:
@@ -321,6 +352,7 @@ func set_tutorial_step(step: int, step_count: int) -> void:
 
 func complete_tutorial() -> void:
 	tutorial_completed = true
+	_trigger_story_decision_if_needed()
 	_commit_state()
 
 
@@ -328,6 +360,238 @@ func restart_tutorial() -> void:
 	tutorial_step = 0
 	tutorial_completed = false
 	_commit_state()
+
+
+func has_pending_story_decision() -> bool:
+	return not pending_story_decision.is_empty()
+
+
+func get_pending_story_decision() -> Dictionary:
+	return pending_story_decision
+
+
+func has_decision_feedback() -> bool:
+	return not decision_feedback.is_empty()
+
+
+func get_decision_feedback() -> Dictionary:
+	return decision_feedback
+
+
+func dismiss_decision_feedback() -> void:
+	decision_feedback = {}
+	_commit_state()
+
+
+func can_choose_story_option(choice_index: int) -> bool:
+	if not has_pending_story_decision():
+		return false
+	var choices: Array = pending_story_decision.get("choices", [])
+	if choice_index < 0 or choice_index >= choices.size():
+		return false
+	var choice: Dictionary = choices[choice_index]
+	var requirements: Dictionary = choice.get("requirements", {})
+	if cash < int(requirements.get("cash", 0)):
+		return false
+	if savings_balance < float(requirements.get("savings", 0)):
+		return false
+	if debt < int(requirements.get("debt_min", 0)):
+		return false
+	if _get_total_owned_share_count() < int(requirements.get("shares_min", 0)):
+		return false
+	var stock_requirement: Dictionary = requirements.get("stock_cash", {})
+	if not stock_requirement.is_empty():
+		var company_id: String = str(stock_requirement.get("company_id", ""))
+		var quantity: int = int(stock_requirement.get("quantity", 0))
+		if quantity <= 0 or get_company_price(company_id) <= 0:
+			return false
+		if cash < get_company_price(company_id) * quantity:
+			return false
+	return true
+
+
+func resolve_story_decision(choice_index: int) -> String:
+	if not has_pending_story_decision():
+		return "Nie ma obecnie decyzji fabularnej do podjęcia."
+	if not can_choose_story_option(choice_index):
+		return "Nie spełniasz warunków potrzebnych do wybrania tej opcji."
+	var decision: Dictionary = pending_story_decision
+	var choices: Array = decision.get("choices", [])
+	var choice: Dictionary = choices[choice_index]
+	_apply_effects(choice.get("effects", {}))
+	var delayed_effects: Array = choice.get("delayed_effects", [])
+	for delayed_value in delayed_effects:
+		var delayed_effect: Dictionary = delayed_value.duplicate(true)
+		delayed_effect["due_week"] = total_weeks_passed + int(delayed_effect.get("delay_weeks", 0))
+		delayed_effect["source_title"] = str(decision.get("title", "DECYZJA"))
+		scheduled_consequences.append(delayed_effect)
+	var decision_id: String = str(decision.get("id", ""))
+	if not decision_id.is_empty() and not story_decision_history.has(decision_id):
+		story_decision_history.append(decision_id)
+	story_decisions_resolved += 1
+	var future_note: String = ""
+	if delayed_effects.size() == 1:
+		future_note = "Ta decyzja ma jeszcze jeden skutek, który pojawi się w kolejnych tygodniach."
+	elif delayed_effects.size() > 1:
+		future_note = "Ta decyzja ma dalsze skutki, które pojawią się w kolejnych tygodniach."
+	decision_feedback = {
+		"title": str(decision.get("title", "SKUTEK DECYZJI")),
+		"result": str(choice.get("result", "Decyzja została zapisana.")),
+		"education": str(choice.get("education", "")),
+		"future_note": future_note
+	}
+	pending_story_decision = {}
+	_commit_state()
+	return str(decision_feedback.get("result", "Decyzja została zapisana."))
+
+
+func _trigger_story_decision_if_needed() -> bool:
+	if not tutorial_completed or chapter_finished or has_pending_story_decision() or has_decision_feedback():
+		return false
+	var decision: Dictionary = StoryData.get_decision_for_week(get_chapter_week_number())
+	if decision.is_empty():
+		return false
+	var decision_id: String = str(decision.get("id", ""))
+	if decision_id.is_empty() or story_decision_history.has(decision_id):
+		return false
+	pending_story_decision = decision
+	return true
+
+
+func _apply_effects(effects: Dictionary) -> void:
+	cash += int(effects.get("cash", 0))
+	var savings_change: float = float(effects.get("savings", 0))
+	savings_balance = max(0.0, savings_balance + savings_change)
+	if savings_change >= REGULAR_SAVING_MIN_AMOUNT:
+		saving_weeks[total_weeks_passed] = true
+	debt = max(0, debt + int(effects.get("debt", 0)))
+	monthly_income_bonus += int(effects.get("monthly_income_bonus", 0))
+	monthly_expense_modifier += int(effects.get("monthly_expense_modifier", 0))
+	var stock_purchase: Dictionary = effects.get("stock_purchase", {})
+	if not stock_purchase.is_empty():
+		_apply_stock_purchase(str(stock_purchase.get("company_id", "")), int(stock_purchase.get("quantity", 0)))
+	if bool(effects.get("sell_all_stocks", false)):
+		_sell_portfolio_fraction(1.0)
+	if bool(effects.get("sell_half_stocks", false)):
+		_sell_portfolio_fraction(0.5)
+	var repayment_limit: int = int(effects.get("repay_debt", 0))
+	if repayment_limit > 0:
+		var repayment: int = min(repayment_limit, min(cash, debt))
+		cash -= repayment
+		debt -= repayment
+	var mandatory_cost: int = int(effects.get("mandatory_cost", 0))
+	if mandatory_cost > 0:
+		_cover_mandatory_cost(mandatory_cost, false)
+	var savings_cost: int = int(effects.get("savings_cost", 0))
+	if savings_cost > 0:
+		_cover_mandatory_cost(savings_cost, true)
+	var company_price_change: Dictionary = effects.get("company_price_change", {})
+	if not company_price_change.is_empty():
+		_apply_company_price_change(str(company_price_change.get("company_id", "")), int(company_price_change.get("percent", 0)))
+	var market_change: int = int(effects.get("all_company_change_percent", 0))
+	if market_change != 0:
+		for company_id_value in COMPANY_ORDER:
+			_apply_company_price_change(str(company_id_value), market_change)
+
+
+func _apply_stock_purchase(company_id: String, quantity: int) -> void:
+	if not companies.has(company_id) or quantity <= 0:
+		return
+	var price: int = get_company_price(company_id)
+	var total_cost: int = price * quantity
+	if price <= 0 or cash < total_cost:
+		return
+	var company_state: Dictionary = companies[company_id]
+	var old_shares: int = int(company_state.get("shares", 0))
+	var old_average: float = float(company_state.get("average_buy_price", 0.0))
+	var new_shares: int = old_shares + quantity
+	company_state["average_buy_price"] = (old_average * old_shares + total_cost) / new_shares
+	company_state["shares"] = new_shares
+	companies[company_id] = company_state
+	cash -= total_cost
+	first_stock_bought = true
+
+
+func _sell_portfolio_fraction(fraction: float) -> void:
+	for company_id_value in COMPANY_ORDER:
+		var company_id: String = str(company_id_value)
+		var shares: int = get_company_shares(company_id)
+		if shares <= 0:
+			continue
+		var quantity: int = shares
+		if fraction < 1.0:
+			quantity = max(1, ceili(shares * fraction))
+		_sell_stock_without_commit(company_id, quantity)
+
+
+func _sell_stock_without_commit(company_id: String, quantity: int) -> void:
+	var shares: int = get_company_shares(company_id)
+	if shares <= 0 or quantity <= 0:
+		return
+	quantity = min(quantity, shares)
+	var price: int = get_company_price(company_id)
+	var company_state: Dictionary = companies[company_id]
+	var average_buy_price: float = float(company_state.get("average_buy_price", 0.0))
+	cash += price * quantity
+	company_state["realized_profit"] = float(company_state.get("realized_profit", 0.0)) + (price - average_buy_price) * quantity
+	company_state["shares"] = shares - quantity
+	if int(company_state["shares"]) <= 0:
+		company_state["average_buy_price"] = 0.0
+	companies[company_id] = company_state
+
+
+func _get_total_owned_share_count() -> int:
+	var total_shares: int = 0
+	for company_id_value in COMPANY_ORDER:
+		total_shares += get_company_shares(str(company_id_value))
+	return total_shares
+
+
+func _cover_mandatory_cost(cost: int, savings_first: bool) -> void:
+	var remaining_cost: int = max(0, cost)
+	if savings_first:
+		var savings_payment: int = min(remaining_cost, floori(savings_balance))
+		savings_balance -= savings_payment
+		remaining_cost -= savings_payment
+	var cash_payment: int = min(remaining_cost, max(0, cash))
+	cash -= cash_payment
+	remaining_cost -= cash_payment
+	if not savings_first and remaining_cost > 0:
+		var second_savings_payment: int = min(remaining_cost, floori(savings_balance))
+		savings_balance -= second_savings_payment
+		remaining_cost -= second_savings_payment
+	if remaining_cost > 0:
+		debt += remaining_cost
+
+
+func _apply_company_price_change(company_id: String, percent: int) -> void:
+	if not companies.has(company_id) or percent == 0:
+		return
+	var company_state: Dictionary = companies[company_id]
+	var new_price: int = calculate_new_price(int(company_state.get("price", 1)), percent)
+	company_state["price"] = new_price
+	company_state["last_change_percent"] = int(company_state.get("last_change_percent", 0)) + percent
+	var history: Array = company_state.get("price_history", [])
+	if history.is_empty():
+		history.append(new_price)
+	else:
+		history[history.size() - 1] = new_price
+	company_state["price_history"] = history
+	companies[company_id] = company_state
+
+
+func _process_due_consequences(target_week: int) -> Array:
+	var reports: Array = []
+	var remaining_consequences: Array = []
+	for consequence_value in scheduled_consequences:
+		var consequence: Dictionary = consequence_value
+		if int(consequence.get("due_week", 0)) > target_week:
+			remaining_consequences.append(consequence)
+			continue
+		_apply_effects(consequence.get("effects", {}))
+		reports.append(str(consequence.get("report", "Zadziałał skutek wcześniejszej decyzji.")))
+	scheduled_consequences = remaining_consequences
+	return reports
 
 
 func _initialize_companies() -> void:
@@ -688,11 +952,20 @@ func _process_weekly_loan_payment() -> Dictionary:
 func end_week() -> String:
 	if chapter_finished:
 		return "Pierwszy rozdział został już zakończony."
+	if has_pending_story_decision():
+		return "Najpierw podejmij decyzję fabularną na ten tydzień."
+	if has_decision_feedback():
+		return "Najpierw przeczytaj skutek ostatniej decyzji."
 	if has_pending_life_event():
 		return "Najpierw musisz podjąć decyzję dotyczącą wydarzenia."
 	if not tutorial_completed:
 		return "Najpierw ukończ albo pomiń samouczek."
 
+	var opening_prices: Dictionary = {}
+	for opening_company_id_value in COMPANY_ORDER:
+		var opening_company_id: String = str(opening_company_id_value)
+		opening_prices[opening_company_id] = get_company_price(opening_company_id)
+	var consequence_reports: Array = _process_due_consequences(total_weeks_passed + 1)
 	var event: Dictionary = get_current_market_event()
 	var changes: Dictionary = event["changes"]
 	var total_investment_result: int = 0
@@ -702,14 +975,16 @@ func end_week() -> String:
 	for company_id_value in COMPANY_ORDER:
 		var company_id: String = str(company_id_value)
 		var definition: Dictionary = get_company_definition(company_id)
-		var old_price: int = get_company_price(company_id)
-		var change_percent: int = int(changes.get(company_id, 0))
-		var new_price: int = calculate_new_price(old_price, change_percent)
+		var old_price: int = int(opening_prices[company_id])
+		var price_before_market: int = get_company_price(company_id)
+		var market_change_percent: int = int(changes.get(company_id, 0))
+		var new_price: int = calculate_new_price(price_before_market, market_change_percent)
+		var displayed_change_percent: int = roundi((float(new_price - old_price) / float(old_price)) * 100.0)
 		var shares: int = get_company_shares(company_id)
 
 		var company_state: Dictionary = companies[company_id]
 		company_state["price"] = new_price
-		company_state["last_change_percent"] = change_percent
+		company_state["last_change_percent"] = displayed_change_percent
 		var price_history: Array = company_state.get("price_history", [])
 		price_history.append(new_price)
 		while price_history.size() > 12:
@@ -725,7 +1000,7 @@ func end_week() -> String:
 			"ticker": str(definition["ticker"]),
 			"old_price": old_price,
 			"new_price": new_price,
-			"change_percent": change_percent,
+			"change_percent": displayed_change_percent,
 			"shares": shares,
 			"position_result": position_result
 		})
@@ -734,7 +1009,7 @@ func end_week() -> String:
 			str(definition["ticker"]),
 			format_money(old_price),
 			format_money(new_price),
-			format_signed_number(change_percent)
+			format_signed_number(displayed_change_percent)
 		])
 
 	var monthly_report: String = advance_time()
@@ -749,6 +1024,9 @@ func end_week() -> String:
 	)
 	if not loan_report.is_empty():
 		report += "\n\n" + loan_report
+	if not consequence_reports.is_empty():
+		report += "\n\nKONSEKWENCJE WCZEŚNIEJSZYCH DECYZJI:\n"
+		report += "\n".join(PackedStringArray(consequence_reports))
 
 	last_week_summary = {
 		"completed_week": total_weeks_passed,
@@ -759,6 +1037,7 @@ func end_week() -> String:
 		"monthly_report": monthly_report.strip_edges(),
 		"loan_report": loan_report,
 		"loan_missed": bool(loan_payment.get("missed", false)),
+		"consequence_reports": consequence_reports,
 		"cash_after": cash,
 		"net_worth_after": get_net_worth()
 	}
@@ -768,9 +1047,13 @@ func end_week() -> String:
 		chapter_finished = true
 		report += "\n\nRozdział 1 został zakończony. Sprawdź podsumowanie."
 	else:
-		var life_event_started: bool = _trigger_life_event_if_needed()
-		if life_event_started:
-			report += "\n\nPojawiło się wydarzenie życiowe. Musisz zdecydować, jak pokryjesz jego koszt."
+		var story_decision_started: bool = _trigger_story_decision_if_needed()
+		if story_decision_started:
+			report += "\n\nRozpoczyna się nowa sytuacja fabularna. Po podsumowaniu tygodnia wybierz dalsze działanie."
+		else:
+			var life_event_started: bool = _trigger_life_event_if_needed()
+			if life_event_started:
+				report += "\n\nPojawiło się wydarzenie życiowe. Musisz zdecydować, jak pokryjesz jego koszt."
 
 	_commit_state()
 	return report
@@ -815,7 +1098,7 @@ func resolve_life_event(payment_method: String) -> String:
 
 	pending_life_event = {}
 	life_events_resolved += 1
-	next_life_event_week = total_weeks_passed + randi_range(3, 4)
+	next_life_event_week = total_weeks_passed + randi_range(6, 8)
 	_commit_state()
 	return payment_report
 
@@ -873,11 +1156,17 @@ func can_make_financial_decisions() -> bool:
 		tutorial_completed
 		and not chapter_finished
 		and not has_pending_life_event()
+		and not has_pending_story_decision()
+		and not has_decision_feedback()
 	)
 
 
 func get_monthly_income() -> int:
 	return MONTHLY_INCOME + monthly_income_bonus
+
+
+func get_monthly_expenses() -> int:
+	return max(1, MONTHLY_EXPENSES + monthly_expense_modifier)
 
 
 func get_net_worth() -> float:
@@ -897,15 +1186,15 @@ func get_chapter_week_number() -> int:
 func get_goal_statuses() -> Array:
 	var saving_week_count: int = get_regular_saving_week_count()
 	var owned_company_count: int = get_owned_company_count()
-	var debt_goal_done: bool = life_events_resolved > 0 and debt <= 500
+	var debt_goal_done: bool = life_events_resolved >= REQUIRED_LIFE_EVENTS and debt <= 500
 
 	return [
-		{"title": "Wpłacaj na oszczędności w 3 różnych tygodniach", "progress": "%d/%d" % [saving_week_count, REQUIRED_SAVING_WEEKS], "done": saving_week_count >= REQUIRED_SAVING_WEEKS},
+		{"title": "Wpłacaj na oszczędności w 12 różnych tygodniach", "progress": "%d/%d" % [saving_week_count, REQUIRED_SAVING_WEEKS], "done": saving_week_count >= REQUIRED_SAVING_WEEKS},
 		{"title": "Kup swoją pierwszą akcję", "progress": "", "done": first_stock_bought},
 		{"title": "Posiadaj akcje przynajmniej 3 firm", "progress": "%d/%d" % [owned_company_count, REQUIRED_COMPANIES], "done": owned_company_count >= REQUIRED_COMPANIES},
 		{"title": "Zbuduj poduszkę bezpieczeństwa 5 400 M$", "progress": "%s/%s M$" % [format_money_decimal(savings_balance), format_money(EMERGENCY_FUND_TARGET)], "done": savings_balance >= EMERGENCY_FUND_TARGET},
-		{"title": "Rozwiąż przynajmniej 1 wydarzenie życiowe", "progress": "%d/1" % min(life_events_resolved, 1), "done": life_events_resolved >= 1},
-		{"title": "Po wydarzeniu utrzymaj dług na poziomie maks. 500 M$", "progress": "%s M$" % format_money(debt), "done": debt_goal_done}
+		{"title": "Rozwiąż przynajmniej 4 wydarzenia życiowe", "progress": "%d/%d" % [min(life_events_resolved, REQUIRED_LIFE_EVENTS), REQUIRED_LIFE_EVENTS], "done": life_events_resolved >= REQUIRED_LIFE_EVENTS},
+		{"title": "Po wydarzeniach utrzymaj dług na poziomie maks. 500 M$", "progress": "%s M$" % format_money(debt), "done": debt_goal_done}
 	]
 
 
@@ -931,7 +1220,7 @@ func get_chapter_summary() -> String:
 		assessment = "To dopiero początek. Sprawdź niewykonane cele i spróbuj ponownie z inną strategią."
 
 	return (
-		"Minęło 12 tygodni pierwszego rozdziału.\n\n"
+		"Minął pełny rok — 48 tygodni pierwszego rozdziału.\n\n"
 		+ "Wykonane cele: %d/%d\n" % [completed, total_goals]
 		+ "Majątek netto: %s M$\n" % format_money_decimal(get_net_worth())
 		+ "Oszczędności: %s M$\n" % format_money_decimal(savings_balance)
@@ -939,6 +1228,7 @@ func get_chapter_summary() -> String:
 		+ "Wynik posiadanych akcji: %s M$\n" % format_money_decimal(get_total_unrealized_profit())
 		+ "Wynik ze sprzedaży akcji: %s M$\n" % format_money_decimal(get_total_realized_profit())
 		+ "Dług: %s M$\n" % format_money(debt)
+		+ "Decyzje fabularne: %d/%d\n" % [story_decisions_resolved, StoryData.get_decision_count()]
 		+ "Naliczane odsetki od pożyczek: %s M$\n" % format_money(total_loan_interest_charged)
 		+ "Pełne raty / opóźnione raty: %d / %d\n\n" % [loan_payments_made, missed_loan_payments]
 		+ assessment
@@ -962,8 +1252,9 @@ func advance_time() -> String:
 	savings_balance += savings_interest
 
 	var current_income: int = get_monthly_income()
+	var current_expenses: int = get_monthly_expenses()
 	cash += current_income
-	cash -= MONTHLY_EXPENSES
+	cash -= current_expenses
 
 	if current_month > 12:
 		current_month = 1
@@ -972,7 +1263,7 @@ func advance_time() -> String:
 	var report: String = (
 		"\n\nROZLICZENIE MIESIĄCA:"
 		+ "\nDochód: +%s M$" % format_money(current_income)
-		+ "\nWydatki: -%s M$" % format_money(MONTHLY_EXPENSES)
+		+ "\nWydatki: -%s M$" % format_money(current_expenses)
 		+ "\nOdsetki z oszczędności: +%s M$" % format_money_decimal(savings_interest)
 	)
 	return report

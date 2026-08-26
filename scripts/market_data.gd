@@ -172,4 +172,3 @@ const LIFE_EVENTS = [
 		"income_bonus": 200
 	}
 ]
-

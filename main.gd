@@ -93,6 +93,7 @@ const TUTORIAL_STEPS = TutorialData.STEPS
 @onready var summary_portfolio_result_label: Label = $WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody/SummaryPortfolioResultLabel
 @onready var summary_loan_label: Label = $WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody/SummaryLoanLabel
 @onready var summary_monthly_label: Label = $WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody/SummaryMonthlyLabel
+@onready var summary_consequence_label: Label = $WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody/SummaryConsequenceLabel
 @onready var summary_explanation_label: Label = $WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody/SummaryExplanationLabel
 @onready var summary_education_label: Label = $WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody/SummaryEducationLabel
 @onready var summary_continue_button: Button = $WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryContinueButton
@@ -500,6 +501,9 @@ func show_week_summary() -> void:
 	var monthly_report: String = str(summary.get("monthly_report", ""))
 	summary_monthly_label.visible = not monthly_report.is_empty()
 	summary_monthly_label.text = monthly_report
+	var consequence_reports: Array = summary.get("consequence_reports", [])
+	summary_consequence_label.visible = not consequence_reports.is_empty()
+	summary_consequence_label.text = "KONSEKWENCJE WCZEŚNIEJSZYCH DECYZJI\n" + "\n\n".join(PackedStringArray(consequence_reports))
 	summary_explanation_label.text = (
 		"DLACZEGO TAK SIĘ STAŁO?\n%s"
 		% str(summary.get("explanation", ""))
@@ -508,6 +512,8 @@ func show_week_summary() -> void:
 
 	if GameState.chapter_finished:
 		summary_continue_button.text = "ZOBACZ PODSUMOWANIE ROZDZIAŁU"
+	elif GameState.has_pending_story_decision():
+		summary_continue_button.text = "PRZEJDŹ DO DECYZJI"
 	elif GameState.has_pending_life_event():
 		summary_continue_button.text = "PRZEJDŹ DO WYDARZENIA"
 	else:
@@ -665,15 +671,32 @@ func _on_summary_continue_pressed() -> void:
 
 
 func _on_pay_cash_pressed() -> void:
+	if GameState.has_decision_feedback():
+		GameState.dismiss_decision_feedback()
+		report_label.text = "Konsekwencja zapisana. Możesz planować kolejny tydzień."
+		return
+	if GameState.has_pending_story_decision():
+		_resolve_story_choice(0)
+		return
 	report_label.text = GameState.resolve_life_event("cash")
 
 
 func _on_pay_savings_pressed() -> void:
+	if GameState.has_pending_story_decision():
+		_resolve_story_choice(1)
+		return
 	report_label.text = GameState.resolve_life_event("savings")
 
 
 func _on_take_loan_pressed() -> void:
+	if GameState.has_pending_story_decision():
+		_resolve_story_choice(2)
+		return
 	report_label.text = GameState.resolve_life_event("loan")
+
+
+func _resolve_story_choice(choice_index: int) -> void:
+	report_label.text = GameState.resolve_story_decision(choice_index)
 
 
 func _on_restart_chapter_pressed() -> void:
@@ -905,7 +928,7 @@ func create_portfolio_assessment(cash_value: float, savings_value: float, stock_
 		assessment = "Częściowa dywersyfikacja: masz mniej niż trzy firmy."
 	else:
 		assessment = "Dobra dywersyfikacja: inwestycje obejmują co najmniej trzy firmy."
-	var covered_months: float = (cash_value + savings_value) / GameState.MONTHLY_EXPENSES
+	var covered_months: float = (cash_value + savings_value) / GameState.get_monthly_expenses()
 	assessment += " Płynne środki pokrywają około %s mies. wydatków." % format_decimal(covered_months)
 	if GameState.debt > 0:
 		assessment += " Masz dług z automatyczną ratą tygodniową."
@@ -914,20 +937,21 @@ func create_portfolio_assessment(cash_value: float, savings_value: float, stock_
 
 func update_budget_ui() -> void:
 	var current_income: int = GameState.get_monthly_income()
-	var monthly_surplus: int = current_income - GameState.MONTHLY_EXPENSES
+	var current_expenses: int = GameState.get_monthly_expenses()
+	var monthly_surplus: int = current_income - current_expenses
 	var emergency_target: float = GameState.EMERGENCY_FUND_TARGET
 	var saved_amount: float = GameState.savings_balance
-	var covered_months: float = saved_amount / GameState.MONTHLY_EXPENSES
+	var covered_months: float = saved_amount / current_expenses
 	var missing_amount: float = max(0.0, emergency_target - saved_amount)
 	budget_income_label.text = "Dochód: +%s M$" % GameState.format_money(current_income)
-	budget_expenses_label.text = "Stałe wydatki: -%s M$" % GameState.format_money(GameState.MONTHLY_EXPENSES)
+	budget_expenses_label.text = "Stałe wydatki: -%s M$" % GameState.format_money(current_expenses)
 	budget_surplus_label.text = "Miesięczna nadwyżka: +%s M$" % GameState.format_money(monthly_surplus)
 	emergency_fund_label.text = "Poduszka na koncie: %s / %s M$" % [GameState.format_money_decimal(saved_amount), GameState.format_money(GameState.EMERGENCY_FUND_TARGET)]
 	emergency_fund_progress.min_value = 0.0
 	emergency_fund_progress.max_value = emergency_target
 	emergency_fund_progress.value = min(saved_amount, emergency_target)
 	if saved_amount >= emergency_target:
-		budget_advice_label.text = "Cel osiągnięty. Oszczędności pokrywają trzy miesiące stałych wydatków."
+		budget_advice_label.text = "Cel osiągnięty: masz co najmniej 5 400 M$ poduszki. Przy obecnych wydatkach to około %s mies." % format_decimal(covered_months)
 	elif covered_months >= 1.0:
 		budget_advice_label.text = "Oszczędności pokrywają około %s mies. wydatków. Do celu brakuje %s M$." % [format_decimal(covered_months), GameState.format_money_decimal(missing_amount)]
 	else:
@@ -972,7 +996,7 @@ func update_budget_ui() -> void:
 
 func update_goals_ui() -> void:
 	var chapter_week: int = GameState.get_chapter_week_number()
-	chapter_progress_label.text = "ROZDZIAŁ 1: PIERWSZE KROKI • TYDZIEŃ %d/%d" % [chapter_week, GameState.CHAPTER_LENGTH_WEEKS]
+	chapter_progress_label.text = "ROZDZIAŁ 1: PIERWSZY ROK • TYDZIEŃ %d/%d" % [chapter_week, GameState.CHAPTER_LENGTH_WEEKS]
 	chapter_progress_bar.min_value = 0.0
 	chapter_progress_bar.max_value = GameState.CHAPTER_LENGTH_WEEKS
 	chapter_progress_bar.value = GameState.total_weeks_passed
@@ -992,12 +1016,19 @@ func update_goals_ui() -> void:
 
 
 func update_event_overlay() -> void:
-	var show_life_event: bool = GameState.has_pending_life_event()
 	var show_summary: bool = GameState.chapter_finished
-	event_overlay.visible = show_life_event or show_summary
+	var show_feedback: bool = GameState.has_decision_feedback()
+	var show_story_decision: bool = GameState.has_pending_story_decision()
+	var show_life_event: bool = GameState.has_pending_life_event()
+	event_overlay.visible = show_summary or show_feedback or show_story_decision or show_life_event
 	if not event_overlay.visible:
 		return
 	stock_detail_overlay.visible = false
+	restart_chapter_button.visible = false
+	pay_cash_button.visible = true
+	pay_savings_button.visible = true
+	take_loan_button.visible = true
+	event_cost_label.add_theme_font_size_override("font_size", 24)
 	if show_summary:
 		event_title_label.text = "KONIEC ROZDZIAŁU 1"
 		event_description_label.text = GameState.get_chapter_summary()
@@ -1007,15 +1038,49 @@ func update_event_overlay() -> void:
 		take_loan_button.visible = false
 		restart_chapter_button.visible = true
 		return
+	if show_feedback:
+		var feedback: Dictionary = GameState.get_decision_feedback()
+		var lesson_parts: PackedStringArray = []
+		var future_note: String = str(feedback.get("future_note", ""))
+		var education: String = str(feedback.get("education", ""))
+		if not future_note.is_empty():
+			lesson_parts.append(future_note)
+		if not education.is_empty():
+			lesson_parts.append("LEKCJA\n" + education)
+		event_title_label.text = "SKUTEK DECYZJI"
+		event_description_label.text = str(feedback.get("title", "DECYZJA")) + "\n\n" + str(feedback.get("result", "Decyzja została zapisana."))
+		event_cost_label.text = "\n\n".join(lesson_parts)
+		event_cost_label.add_theme_font_size_override("font_size", 18)
+		pay_cash_button.text = "ROZUMIEM"
+		pay_cash_button.disabled = false
+		pay_savings_button.visible = false
+		take_loan_button.visible = false
+		return
+	if show_story_decision:
+		var decision: Dictionary = GameState.get_pending_story_decision()
+		var choices: Array = decision.get("choices", [])
+		var choice_buttons: Array[Button] = [pay_cash_button, pay_savings_button, take_loan_button]
+		event_title_label.text = str(decision.get("title", "DECYZJA TYGODNIA"))
+		event_description_label.text = str(decision.get("description", ""))
+		event_cost_label.text = "WYBIERZ JEDNĄ OPCJĘ. Nie każda korzyść lub strata pojawi się od razu."
+		event_cost_label.add_theme_font_size_override("font_size", 18)
+		for choice_index in range(choice_buttons.size()):
+			var choice_button: Button = choice_buttons[choice_index]
+			choice_button.visible = choice_index < choices.size()
+			if not choice_button.visible:
+				continue
+			var choice: Dictionary = choices[choice_index]
+			choice_button.text = str(choice.get("title", "OPCJA")) + "\n" + str(choice.get("details", ""))
+			choice_button.disabled = not GameState.can_choose_story_option(choice_index)
+		return
 	var life_event: Dictionary = GameState.get_pending_life_event()
 	var cost: int = int(life_event["cost"])
 	event_title_label.text = str(life_event["title"])
 	event_description_label.text = str(life_event["description"])
 	event_cost_label.text = "Koszt: %s M$" % GameState.format_money(cost)
-	pay_cash_button.visible = true
-	pay_savings_button.visible = true
-	take_loan_button.visible = true
-	restart_chapter_button.visible = false
+	pay_cash_button.text = "ZAPŁAĆ GOTÓWKĄ"
+	pay_savings_button.text = "UŻYJ OSZCZĘDNOŚCI"
+	take_loan_button.text = "WEŹ POŻYCZKĘ"
 	pay_cash_button.disabled = GameState.cash < cost
 	pay_savings_button.disabled = GameState.savings_balance < cost
 	take_loan_button.disabled = false

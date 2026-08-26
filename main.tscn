@@ -45,7 +45,7 @@ horizontal_alignment = 1
 [node name="DateLabel" type="Label" parent="PageMargin/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Rok 1 • Miesiąc 1 • Tydzień 1/4 • Rozdział 1/12"
+text = "Rok 1 • Miesiąc 1 • Tydzień 1/4 • Rozdział 1/48"
 horizontal_alignment = 1
 
 [node name="CashLabel" type="Label" parent="PageMargin/Content"]
@@ -339,13 +339,13 @@ horizontal_alignment = 1
 [node name="ChapterProgressLabel" type="Label" parent="PageMargin/Content/Pages/GoalsPage"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 19
-text = "ROZDZIAŁ 1: PIERWSZE KROKI • TYDZIEŃ 1/12"
+text = "ROZDZIAŁ 1: PIERWSZY ROK • TYDZIEŃ 1/48"
 horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="ChapterProgressBar" type="ProgressBar" parent="PageMargin/Content/Pages/GoalsPage"]
 layout_mode = 2
-max_value = 12.0
+max_value = 48.0
 
 [node name="GoalsListLabel" type="Label" parent="PageMargin/Content/Pages/GoalsPage"]
 layout_mode = 2
@@ -769,20 +769,24 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Koszt: 0 M$"
 horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="PayCashButton" type="Button" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+custom_minimum_size = Vector2(0, 82)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 17
 text = "ZAPŁAĆ GOTÓWKĄ"
 
 [node name="PaySavingsButton" type="Button" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+custom_minimum_size = Vector2(0, 82)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 17
 text = "ZAPŁAĆ Z OSZCZĘDNOŚCI"
 
 [node name="TakeLoanButton" type="Button" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
+custom_minimum_size = Vector2(0, 82)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 17
 text = "WEŹ POŻYCZKĘ"
 
 [node name="RestartChapterButton" type="Button" parent="EventOverlay/EventCenter/EventPanel/EventMargin/EventContent"]
@@ -827,7 +831,7 @@ horizontal_alignment = 1
 [node name="SummaryWeekLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 19
-text = "Tydzień 1 z 12"
+text = "Tydzień 1 z 48"
 horizontal_alignment = 1
 
 [node name="SummaryNewsPanel" type="PanelContainer" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent"]
@@ -901,6 +905,14 @@ visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Rozliczenie miesiąca"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SummaryConsequenceLabel" type="Label" parent="WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryScroll/SummaryBody"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Konsekwencje wcześniejszych decyzji"
 horizontal_alignment = 1
 autowrap_mode = 3
 
