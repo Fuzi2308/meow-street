@@ -4,8 +4,13 @@ extends RefCounted
 const STEPS = [
 	{
 		"title": "WITAJ W MEOW STREET",
-		"text": "Rozpoczynasz z gotówką 2 500 M$. Pierwszy rozdział trwa pełny rok: 48 tygodni, czyli 12 czterotygodniowych miesięcy. Twoim zadaniem jest podejmowanie decyzji, obserwowanie ich skutków i rozwijanie swojej sytuacji finansowej.",
-		"screen": "budget"
+		"text": "Rozpoczynasz z gotówką 2 500 M$ w swojej pierwszej dzielnicy. Pierwszy rozdział trwa pełny rok: 48 tygodni, czyli 12 czterotygodniowych miesięcy. Twoim zadaniem jest podejmowanie decyzji, obserwowanie ich skutków i rozwijanie swojej sytuacji finansowej.",
+		"screen": "city"
+	},
+	{
+		"title": "MIASTO I TELEFON",
+		"text": "MIASTO jest głównym ekranem gry. Wybierasz na nim miejsca związane z fabułą i finansami. TELEFON zawiera aplikacje do obsługi rynku, oszczędności, portfela, budżetu, celów oraz historii. Dolne menu zawsze pozwala przełączać się między tymi dwoma ekranami.",
+		"screen": "phone"
 	},
 	{
 		"title": "CZAS I MIESIĘCZNY BUDŻET",
@@ -39,12 +44,22 @@ const STEPS = [
 	},
 	{
 		"title": "DECYZJE I KONSEKWENCJE",
-		"text": "Co cztery tygodnie pojawi się większa sytuacja fabularna z trzema odpowiedziami. Część skutków zobaczysz od razu, a inne dopiero po kilku tygodniach. Czytaj warunki i porównuj ryzyko.",
+		"text": "Co cztery tygodnie pojawi się większa sytuacja fabularna z trzema odpowiedziami. Każda pokazuje poziom ryzyka i możliwe wyniki. Rezultat ryzykownej opcji jest losowany tylko raz przy pojawieniu się decyzji i zapisywany, dlatego ponowne wczytanie gry go nie zmienia.",
+		"screen": "goals"
+	},
+	{
+		"title": "HISTORIA DECYZJI",
+		"text": "Ekran HISTORIA zapisuje każdy wybór. Zobaczysz tam oczekujące konsekwencje bez zdradzania wyniku, wcześniejsze decyzje oraz skutki, które już wystąpiły. Dzięki temu możesz ocenić cały plan, a nie tylko ostatni tydzień.",
+		"screen": "history"
+	},
+	{
+		"title": "OCENA PO PIERWSZYM ROKU",
+		"text": "Po 48 tygodniach dostaniesz ocenę S, A, B, C albo D w sześciu obszarach: poduszka, regularność, dług, płynność, inwestowanie oraz jakość decyzji. Losowy zysk nie usprawiedliwia niepotrzebnego ryzyka, a rozsądna decyzja nie staje się błędem tylko dlatego, że wynik okazał się pechowy.",
 		"screen": "goals"
 	},
 	{
 		"title": "CZAS NA PIERWSZĄ DECYZJĘ",
-		"text": "Używaj dolnego menu jak w aplikacji finansowej. Po samouczku od razu podejmiesz pierwszą decyzję fabularną. Sprawdzaj wiadomości, nie wydawaj wszystkich pieniędzy bez planu i pamiętaj o poduszce bezpieczeństwa. Gra zapisuje się automatycznie.",
-		"screen": "market"
+		"text": "Po samouczku wrócisz do miasta i od razu podejmiesz pierwszą decyzję fabularną. Sprawdzaj powiadomienia w telefonie, nie wydawaj wszystkich pieniędzy bez planu i pamiętaj o poduszce bezpieczeństwa. Gra zapisuje się automatycznie.",
+		"screen": "city"
 	}
 ]

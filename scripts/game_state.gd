@@ -5,7 +5,7 @@ signal state_changed
 
 
 const SAVE_PATH: String = "user://meow_street_save.json"
-const SAVE_VERSION: int = 5
+const SAVE_VERSION: int = 7
 
 const STARTING_CASH: int = 2500
 const CHAPTER_LENGTH_WEEKS: int = 48
@@ -64,7 +64,9 @@ var life_events_resolved: int = 0
 
 var pending_story_decision: Dictionary = {}
 var story_decision_history: Array = []
+var decision_history: Array = []
 var scheduled_consequences: Array = []
+var consequence_history: Array = []
 var decision_feedback: Dictionary = {}
 var story_decisions_resolved: int = 0
 
@@ -74,6 +76,7 @@ var chapter_finished: bool = false
 var tutorial_step: int = 0
 var tutorial_completed: bool = false
 var last_week_summary: Dictionary = {}
+var chapter_stats: Dictionary = {}
 
 
 func _ready() -> void:
@@ -112,7 +115,9 @@ func reset_game(
 
 	pending_story_decision = {}
 	story_decision_history.clear()
+	decision_history.clear()
 	scheduled_consequences.clear()
+	consequence_history.clear()
 	decision_feedback = {}
 	story_decisions_resolved = 0
 
@@ -122,6 +127,7 @@ func reset_game(
 	tutorial_step = 0
 	tutorial_completed = false
 	last_week_summary = {}
+	chapter_stats = _create_empty_chapter_stats()
 
 	if save_after_reset:
 		save_game()
@@ -139,6 +145,7 @@ func has_save_file() -> bool:
 
 
 func save_game() -> bool:
+	_update_stat_extremes()
 	var save_file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 
 	if save_file == null:
@@ -173,14 +180,17 @@ func save_game() -> bool:
 		"life_events_resolved": life_events_resolved,
 		"pending_story_decision": pending_story_decision,
 		"story_decision_history": story_decision_history,
+		"decision_history": decision_history,
 		"scheduled_consequences": scheduled_consequences,
+		"consequence_history": consequence_history,
 		"decision_feedback": decision_feedback,
 		"story_decisions_resolved": story_decisions_resolved,
 		"saving_week_numbers": saving_week_numbers,
 		"first_stock_bought": first_stock_bought,
 		"chapter_finished": chapter_finished,
 		"tutorial_step": tutorial_step,
-		"tutorial_completed": tutorial_completed
+		"tutorial_completed": tutorial_completed,
+		"chapter_stats": chapter_stats
 	}
 
 	save_file.store_string(JSON.stringify(save_data))
@@ -217,6 +227,9 @@ func load_game() -> bool:
 		return false
 
 	_apply_save_data(save_data)
+	# Zapisuje ewentualną migrację starszego zapisu oraz przygotowany wynik
+	# decyzji. Dzięki temu ponowne uruchomienie gry nie losuje go ponownie.
+	save_game()
 	state_changed.emit()
 	return true
 
@@ -314,7 +327,26 @@ func _apply_save_data(save_data: Dictionary) -> void:
 	life_events_resolved = int(save_data.get("life_events_resolved", 0))
 	pending_story_decision = save_data.get("pending_story_decision", {})
 	story_decision_history = save_data.get("story_decision_history", [])
+	decision_history = save_data.get("decision_history", [])
+	if decision_history.is_empty() and not story_decision_history.is_empty():
+		for old_decision_id_value in story_decision_history:
+			var old_decision_id: String = str(old_decision_id_value)
+			var old_summary: Dictionary = StoryData.get_decision_summary_by_id(old_decision_id)
+			if old_summary.is_empty():
+				continue
+			decision_history.append({
+				"decision_id": old_decision_id,
+				"week": int(old_summary.get("week", 0)),
+				"title": str(old_summary.get("title", "DECYZJA")),
+				"choice": "Decyzja podjęta przed aktualizacją",
+				"risk": "BRAK DANYCH",
+				"risk_note": "",
+				"result": "Poprzednia wersja zapisu nie przechowywała szczegółów tego wyboru.",
+				"education": "",
+				"pending_consequences": 0
+			})
 	scheduled_consequences = save_data.get("scheduled_consequences", [])
+	consequence_history = save_data.get("consequence_history", [])
 	decision_feedback = save_data.get("decision_feedback", {})
 	story_decisions_resolved = int(save_data.get("story_decisions_resolved", story_decision_history.size()))
 
@@ -330,12 +362,118 @@ func _apply_save_data(save_data: Dictionary) -> void:
 		chapter_finished = total_weeks_passed >= CHAPTER_LENGTH_WEEKS
 	tutorial_step = max(0, int(save_data.get("tutorial_step", 0)))
 	tutorial_completed = bool(save_data.get("tutorial_completed", false))
+	chapter_stats = _normalize_chapter_stats(save_data.get("chapter_stats", {}))
+	if not save_data.has("chapter_stats"):
+		_rebuild_migrated_decision_stats()
+	_update_stat_extremes()
+	if not pending_story_decision.is_empty() and not bool(pending_story_decision.get("outcomes_prepared", false)):
+		var refreshed_decision: Dictionary = StoryData.get_decision_for_week(get_chapter_week_number())
+		if str(refreshed_decision.get("id", "")) == str(pending_story_decision.get("id", "")):
+			pending_story_decision = _prepare_story_decision(refreshed_decision)
 	_trigger_story_decision_if_needed()
 
 
 func _commit_state() -> void:
+	_update_stat_extremes()
 	save_game()
 	state_changed.emit()
+
+
+func _create_empty_chapter_stats() -> Dictionary:
+	return {
+		"tracking_started_week": total_weeks_passed,
+		"weeks_recorded": 0,
+		"safe_liquidity_weeks": 0,
+		"critical_liquidity_weeks": 0,
+		"minimum_cash": cash,
+		"minimum_liquid_assets": cash + savings_balance,
+		"maximum_savings": savings_balance,
+		"peak_debt": debt,
+		"maximum_owned_companies": get_owned_company_count(),
+		"total_income_received": 0,
+		"total_expenses_paid": 0,
+		"total_savings_interest": 0.0,
+		"total_savings_deposited": 0.0,
+		"total_savings_withdrawn": 0.0,
+		"total_stock_purchases": 0,
+		"total_stock_sales": 0,
+		"total_story_income": 0,
+		"total_story_spending": 0,
+		"total_unplanned_costs": 0,
+		"life_event_costs_total": 0,
+		"life_events_paid_cash": 0,
+		"life_events_paid_savings": 0,
+		"life_events_financed_by_loan": 0,
+		"low_risk_decisions": 0,
+		"medium_risk_decisions": 0,
+		"high_risk_decisions": 0,
+		"unsafe_high_risk_decisions": 0
+	}
+
+
+func _normalize_chapter_stats(saved_stats_value: Variant) -> Dictionary:
+	var defaults: Dictionary = _create_empty_chapter_stats()
+	if typeof(saved_stats_value) != TYPE_DICTIONARY:
+		return defaults
+	var saved_stats: Dictionary = saved_stats_value
+	for stat_key_value in defaults.keys():
+		var stat_key: String = str(stat_key_value)
+		if saved_stats.has(stat_key):
+			defaults[stat_key] = saved_stats[stat_key]
+	return defaults
+
+
+func _rebuild_migrated_decision_stats() -> void:
+	chapter_stats["tracking_started_week"] = total_weeks_passed
+	for history_value in decision_history:
+		var history_entry: Dictionary = history_value
+		var risk: String = str(history_entry.get("risk", "")).to_upper()
+		if risk == "NISKIE":
+			_add_stat("low_risk_decisions", 1)
+		elif risk == "ŚREDNIE":
+			_add_stat("medium_risk_decisions", 1)
+		elif risk == "WYSOKIE":
+			_add_stat("high_risk_decisions", 1)
+
+
+func _add_stat(stat_name: String, amount: Variant) -> void:
+	chapter_stats[stat_name] = chapter_stats.get(stat_name, 0) + amount
+
+
+func _update_stat_extremes() -> void:
+	if chapter_stats.is_empty():
+		return
+	var liquid_assets: float = cash + savings_balance
+	chapter_stats["minimum_cash"] = min(
+		float(chapter_stats.get("minimum_cash", cash)),
+		float(cash)
+	)
+	chapter_stats["minimum_liquid_assets"] = min(
+		float(chapter_stats.get("minimum_liquid_assets", liquid_assets)),
+		liquid_assets
+	)
+	chapter_stats["maximum_savings"] = max(
+		float(chapter_stats.get("maximum_savings", 0.0)),
+		savings_balance
+	)
+	chapter_stats["peak_debt"] = max(
+		int(chapter_stats.get("peak_debt", 0)),
+		debt
+	)
+	chapter_stats["maximum_owned_companies"] = max(
+		int(chapter_stats.get("maximum_owned_companies", 0)),
+		get_owned_company_count()
+	)
+
+
+func _record_completed_week_statistics() -> void:
+	_add_stat("weeks_recorded", 1)
+	var liquid_assets: float = cash + savings_balance
+	if liquid_assets >= get_monthly_expenses():
+		_add_stat("safe_liquidity_weeks", 1)
+	if liquid_assets < get_monthly_expenses() * 0.5:
+		_add_stat("critical_liquidity_weeks", 1)
+	_update_stat_extremes()
 
 
 func is_tutorial_active() -> bool:
@@ -378,6 +516,18 @@ func get_decision_feedback() -> Dictionary:
 	return decision_feedback
 
 
+func get_decision_history() -> Array:
+	return decision_history.duplicate(true)
+
+
+func get_scheduled_consequences() -> Array:
+	return scheduled_consequences.duplicate(true)
+
+
+func get_consequence_history() -> Array:
+	return consequence_history.duplicate(true)
+
+
 func dismiss_decision_feedback() -> void:
 	decision_feedback = {}
 	_commit_state()
@@ -418,25 +568,70 @@ func resolve_story_decision(choice_index: int) -> String:
 	var decision: Dictionary = pending_story_decision
 	var choices: Array = decision.get("choices", [])
 	var choice: Dictionary = choices[choice_index]
+	_record_story_choice_risk(str(choice.get("risk", "NISKIE")))
 	_apply_effects(choice.get("effects", {}))
-	var delayed_effects: Array = choice.get("delayed_effects", [])
-	for delayed_value in delayed_effects:
+
+	var outcomes: Array = choice.get("outcomes", [])
+	var selected_outcome: Dictionary = {}
+	if not outcomes.is_empty():
+		var selected_outcome_index: int = clampi(
+			int(choice.get("selected_outcome_index", 0)),
+			0,
+			outcomes.size() - 1
+		)
+		selected_outcome = outcomes[selected_outcome_index]
+		_apply_effects(selected_outcome.get("effects", {}))
+
+	var delayed_effects: Array = []
+	var delayed_source: Array = choice.get("delayed_effects", [])
+	if not selected_outcome.is_empty():
+		delayed_source = selected_outcome.get("delayed_effects", [])
+	for delayed_source_value in delayed_source:
+		delayed_effects.append(delayed_source_value.duplicate(true))
+
+	var decision_id: String = str(decision.get("id", ""))
+	for delayed_index in range(delayed_effects.size()):
+		var delayed_value: Dictionary = delayed_effects[delayed_index]
 		var delayed_effect: Dictionary = delayed_value.duplicate(true)
 		delayed_effect["due_week"] = total_weeks_passed + int(delayed_effect.get("delay_weeks", 0))
 		delayed_effect["source_title"] = str(decision.get("title", "DECYZJA"))
+		delayed_effect["source_choice"] = str(choice.get("title", "OPCJA"))
+		delayed_effect["risk"] = str(choice.get("risk", "NISKIE"))
+		delayed_effect["consequence_id"] = "%s_%d_%d_%d" % [
+			decision_id,
+			choice_index,
+			total_weeks_passed,
+			delayed_index
+		]
 		scheduled_consequences.append(delayed_effect)
-	var decision_id: String = str(decision.get("id", ""))
 	if not decision_id.is_empty() and not story_decision_history.has(decision_id):
 		story_decision_history.append(decision_id)
 	story_decisions_resolved += 1
+	var visible_result: String = str(choice.get("result", "Decyzja została zapisana."))
+	if bool(selected_outcome.get("reveal_immediately", false)):
+		visible_result = str(selected_outcome.get("result", visible_result))
+	decision_history.append({
+		"decision_id": decision_id,
+		"week": get_chapter_week_number(),
+		"title": str(decision.get("title", "DECYZJA")),
+		"choice": str(choice.get("title", "OPCJA")),
+		"risk": str(choice.get("risk", "NISKIE")),
+		"risk_note": str(choice.get("risk_note", "")),
+		"result": visible_result,
+		"education": str(choice.get("education", "")),
+		"pending_consequences": delayed_effects.size()
+	})
 	var future_note: String = ""
-	if delayed_effects.size() == 1:
+	if not outcomes.is_empty() and not delayed_effects.is_empty():
+		future_note = "Losowy rezultat został już ustalony i zapisany. Poznasz go w kolejnych tygodniach."
+	elif delayed_effects.size() == 1:
 		future_note = "Ta decyzja ma jeszcze jeden skutek, który pojawi się w kolejnych tygodniach."
 	elif delayed_effects.size() > 1:
 		future_note = "Ta decyzja ma dalsze skutki, które pojawią się w kolejnych tygodniach."
 	decision_feedback = {
 		"title": str(decision.get("title", "SKUTEK DECYZJI")),
-		"result": str(choice.get("result", "Decyzja została zapisana.")),
+		"result": visible_result,
+		"risk": str(choice.get("risk", "NISKIE")),
 		"education": str(choice.get("education", "")),
 		"future_note": future_note
 	}
@@ -454,14 +649,59 @@ func _trigger_story_decision_if_needed() -> bool:
 	var decision_id: String = str(decision.get("id", ""))
 	if decision_id.is_empty() or story_decision_history.has(decision_id):
 		return false
-	pending_story_decision = decision
+	pending_story_decision = _prepare_story_decision(decision)
 	return true
 
 
+func _prepare_story_decision(decision: Dictionary) -> Dictionary:
+	var prepared_decision: Dictionary = decision.duplicate(true)
+	if bool(prepared_decision.get("outcomes_prepared", false)):
+		return prepared_decision
+	var choices: Array = prepared_decision.get("choices", [])
+	for choice_index in range(choices.size()):
+		var choice: Dictionary = choices[choice_index]
+		var outcomes: Array = choice.get("outcomes", [])
+		if outcomes.is_empty():
+			continue
+		var total_weight: int = 0
+		for outcome_value in outcomes:
+			var outcome_for_weight: Dictionary = outcome_value
+			total_weight += max(0, int(outcome_for_weight.get("weight", 0)))
+		if total_weight <= 0:
+			choice["selected_outcome_index"] = 0
+			choices[choice_index] = choice
+			continue
+		var roll: int = randi_range(1, total_weight)
+		var accumulated_weight: int = 0
+		var selected_index: int = 0
+		for outcome_index in range(outcomes.size()):
+			var outcome_candidate: Dictionary = outcomes[outcome_index]
+			accumulated_weight += max(0, int(outcome_candidate.get("weight", 0)))
+			if roll <= accumulated_weight:
+				selected_index = outcome_index
+				break
+		choice["selected_outcome_index"] = selected_index
+		choices[choice_index] = choice
+	prepared_decision["choices"] = choices
+	prepared_decision["outcomes_prepared"] = true
+	return prepared_decision
+
+
 func _apply_effects(effects: Dictionary) -> void:
-	cash += int(effects.get("cash", 0))
+	var cash_change: int = int(effects.get("cash", 0))
+	cash += cash_change
+	if cash_change > 0:
+		_add_stat("total_story_income", cash_change)
+	elif cash_change < 0:
+		_add_stat("total_story_spending", abs(cash_change))
+	var savings_before: float = savings_balance
 	var savings_change: float = float(effects.get("savings", 0))
 	savings_balance = max(0.0, savings_balance + savings_change)
+	var actual_savings_change: float = savings_balance - savings_before
+	if actual_savings_change > 0.0:
+		_add_stat("total_savings_deposited", actual_savings_change)
+	elif actual_savings_change < 0.0:
+		_add_stat("total_savings_withdrawn", abs(actual_savings_change))
 	if savings_change >= REGULAR_SAVING_MIN_AMOUNT:
 		saving_weeks[total_weeks_passed] = true
 	debt = max(0, debt + int(effects.get("debt", 0)))
@@ -476,7 +716,7 @@ func _apply_effects(effects: Dictionary) -> void:
 		_sell_portfolio_fraction(0.5)
 	var repayment_limit: int = int(effects.get("repay_debt", 0))
 	if repayment_limit > 0:
-		var repayment: int = min(repayment_limit, min(cash, debt))
+		var repayment: int = min(repayment_limit, min(max(0, cash), debt))
 		cash -= repayment
 		debt -= repayment
 	var mandatory_cost: int = int(effects.get("mandatory_cost", 0))
@@ -509,6 +749,7 @@ func _apply_stock_purchase(company_id: String, quantity: int) -> void:
 	company_state["shares"] = new_shares
 	companies[company_id] = company_state
 	cash -= total_cost
+	_add_stat("total_stock_purchases", total_cost)
 	first_stock_bought = true
 
 
@@ -532,7 +773,9 @@ func _sell_stock_without_commit(company_id: String, quantity: int) -> void:
 	var price: int = get_company_price(company_id)
 	var company_state: Dictionary = companies[company_id]
 	var average_buy_price: float = float(company_state.get("average_buy_price", 0.0))
-	cash += price * quantity
+	var sale_value: int = price * quantity
+	cash += sale_value
+	_add_stat("total_stock_sales", sale_value)
 	company_state["realized_profit"] = float(company_state.get("realized_profit", 0.0)) + (price - average_buy_price) * quantity
 	company_state["shares"] = shares - quantity
 	if int(company_state["shares"]) <= 0:
@@ -549,9 +792,11 @@ func _get_total_owned_share_count() -> int:
 
 func _cover_mandatory_cost(cost: int, savings_first: bool) -> void:
 	var remaining_cost: int = max(0, cost)
+	_add_stat("total_unplanned_costs", remaining_cost)
 	if savings_first:
 		var savings_payment: int = min(remaining_cost, floori(savings_balance))
 		savings_balance -= savings_payment
+		_add_stat("total_savings_withdrawn", savings_payment)
 		remaining_cost -= savings_payment
 	var cash_payment: int = min(remaining_cost, max(0, cash))
 	cash -= cash_payment
@@ -559,9 +804,23 @@ func _cover_mandatory_cost(cost: int, savings_first: bool) -> void:
 	if not savings_first and remaining_cost > 0:
 		var second_savings_payment: int = min(remaining_cost, floori(savings_balance))
 		savings_balance -= second_savings_payment
+		_add_stat("total_savings_withdrawn", second_savings_payment)
 		remaining_cost -= second_savings_payment
 	if remaining_cost > 0:
 		debt += remaining_cost
+
+
+func _record_story_choice_risk(risk_value: String) -> void:
+	var risk: String = risk_value.to_upper()
+	if risk == "NISKIE":
+		_add_stat("low_risk_decisions", 1)
+	elif risk == "ŚREDNIE":
+		_add_stat("medium_risk_decisions", 1)
+	elif risk == "WYSOKIE":
+		_add_stat("high_risk_decisions", 1)
+		var liquid_assets: float = cash + savings_balance
+		if liquid_assets < get_monthly_expenses() or debt > 0:
+			_add_stat("unsafe_high_risk_decisions", 1)
 
 
 func _apply_company_price_change(company_id: String, percent: int) -> void:
@@ -589,7 +848,18 @@ func _process_due_consequences(target_week: int) -> Array:
 			remaining_consequences.append(consequence)
 			continue
 		_apply_effects(consequence.get("effects", {}))
-		reports.append(str(consequence.get("report", "Zadziałał skutek wcześniejszej decyzji.")))
+		var consequence_report: String = str(
+			consequence.get("report", "Zadziałał skutek wcześniejszej decyzji.")
+		)
+		reports.append(consequence_report)
+		consequence_history.append({
+			"consequence_id": str(consequence.get("consequence_id", "")),
+			"week": target_week,
+			"source_title": str(consequence.get("source_title", "DECYZJA")),
+			"source_choice": str(consequence.get("source_choice", "")),
+			"risk": str(consequence.get("risk", "NISKIE")),
+			"report": consequence_report
+		})
 	scheduled_consequences = remaining_consequences
 	return reports
 
@@ -743,6 +1013,7 @@ func buy_stock(company_id: String, quantity: int = 1) -> String:
 	)
 	company_state["shares"] = new_shares
 	companies[company_id] = company_state
+	_add_stat("total_stock_purchases", total_cost)
 	first_stock_bought = true
 	_commit_state()
 
@@ -782,6 +1053,7 @@ func sell_stock(company_id: String, quantity: int = 1) -> String:
 	if int(company_state["shares"]) <= 0:
 		company_state["average_buy_price"] = 0.0
 	companies[company_id] = company_state
+	_add_stat("total_stock_sales", total_value)
 	_commit_state()
 
 	return "Sprzedano %d akcji %s za łącznie %s M$." % [
@@ -801,6 +1073,7 @@ func deposit_savings(amount: int = SAVINGS_DEFAULT_AMOUNT) -> String:
 
 	cash -= amount
 	savings_balance += amount
+	_add_stat("total_savings_deposited", amount)
 	if amount >= REGULAR_SAVING_MIN_AMOUNT:
 		saving_weeks[total_weeks_passed] = true
 	_commit_state()
@@ -823,6 +1096,7 @@ func withdraw_savings(amount: int = SAVINGS_DEFAULT_AMOUNT) -> String:
 
 	savings_balance -= amount
 	cash += amount
+	_add_stat("total_savings_withdrawn", amount)
 	_commit_state()
 	return "Wypłacono %s M$ z konta oszczędnościowego." % format_money(amount)
 
@@ -898,7 +1172,7 @@ func _process_weekly_loan_payment() -> Dictionary:
 	var interest_due: int = get_next_loan_interest()
 	var principal_due: int = min(LOAN_WEEKLY_PRINCIPAL, opening_debt)
 	var scheduled_payment: int = principal_due + interest_due
-	var actual_payment: int = min(cash, scheduled_payment)
+	var actual_payment: int = min(max(0, cash), scheduled_payment)
 	var interest_paid: int = min(actual_payment, interest_due)
 	var unpaid_interest: int = interest_due - interest_paid
 	var principal_paid: int = min(
@@ -1014,6 +1288,7 @@ func end_week() -> String:
 
 	var monthly_report: String = advance_time()
 	var loan_payment: Dictionary = _process_weekly_loan_payment()
+	_record_completed_week_statistics()
 	var loan_report: String = str(loan_payment.get("report", ""))
 	var report: String = (
 		"RYNEK: %s\n" % str(event["headline"])
@@ -1072,16 +1347,20 @@ func resolve_life_event(payment_method: String) -> String:
 			if cash < cost:
 				return "Nie masz wystarczającej ilości gotówki."
 			cash -= cost
+			_add_stat("life_events_paid_cash", 1)
 			payment_report = "Zapłacono %s M$ gotówką. Nie powstał dług, ale zmniejszyła się płynność." % format_money(cost)
 
 		"savings":
 			if savings_balance < cost:
 				return "Nie masz wystarczających środków na koncie oszczędnościowym."
 			savings_balance -= cost
+			_add_stat("life_events_paid_savings", 1)
+			_add_stat("total_savings_withdrawn", cost)
 			payment_report = "Zapłacono %s M$ z oszczędności. Poduszka bezpieczeństwa spełniła swoje zadanie." % format_money(cost)
 
 		"loan":
 			debt += cost
+			_add_stat("life_events_financed_by_loan", 1)
 			payment_report = (
 				"Koszt pokryto pożyczką. Dług wzrósł o %s M$. "
 				+ "Rata i tygodniowe odsetki zostaną naliczone przy "
@@ -1090,6 +1369,8 @@ func resolve_life_event(payment_method: String) -> String:
 
 		_:
 			return "Nieznany sposób rozwiązania wydarzenia."
+
+	_add_stat("life_event_costs_total", cost)
 
 	var income_bonus: int = int(event.get("income_bonus", 0))
 	if income_bonus > 0:
@@ -1207,31 +1488,186 @@ func get_completed_goal_count() -> int:
 	return completed
 
 
-func get_chapter_summary() -> String:
-	var completed: int = get_completed_goal_count()
-	var total_goals: int = get_goal_statuses().size()
-	var assessment: String = ""
+func _score_grade(score: int) -> String:
+	if score >= 90:
+		return "S"
+	if score >= 80:
+		return "A"
+	if score >= 65:
+		return "B"
+	if score >= 50:
+		return "C"
+	return "D"
 
-	if completed >= total_goals:
-		assessment = "Świetny wynik. Połączyłeś oszczędzanie, inwestowanie i kontrolę długu."
-	elif completed >= 4:
-		assessment = "Dobry wynik. Podstawy są opanowane, ale część finansów można jeszcze poprawić."
-	else:
-		assessment = "To dopiero początek. Sprawdź niewykonane cele i spróbuj ponownie z inną strategią."
+
+func _evaluation_category(
+	name: String,
+	score_value: float,
+	comment: String
+) -> Dictionary:
+	var score: int = clampi(roundi(score_value), 0, 100)
+	return {
+		"name": name,
+		"score": score,
+		"grade": _score_grade(score),
+		"comment": comment
+	}
+
+
+func get_chapter_evaluation() -> Dictionary:
+	_update_stat_extremes()
+	var liquid_assets: float = cash + savings_balance
+	var monthly_expenses: float = get_monthly_expenses()
+	var emergency_ratio: float = savings_balance / float(EMERGENCY_FUND_TARGET)
+	var liquid_months: float = liquid_assets / monthly_expenses
+	var emergency_score: float = (
+		clampf(emergency_ratio, 0.0, 1.0) * 70.0
+		+ clampf(liquid_months / 3.0, 0.0, 1.0) * 30.0
+	)
+	var emergency_comment: String = "Poduszka pokrywa co najmniej trzy miesiące wydatków."
+	if emergency_score < 65.0:
+		emergency_comment = "Poduszka jest zbyt mała, aby spokojnie pokrywać większe niespodziewane koszty."
+	elif emergency_score < 90.0:
+		emergency_comment = "Masz zabezpieczenie, ale do pełnych trzech miesięcy wydatków jeszcze trochę brakuje."
+
+	var regular_score: float = clampf(
+		float(get_regular_saving_week_count()) / float(REQUIRED_SAVING_WEEKS),
+		0.0,
+		1.0
+	) * 100.0
+	var regular_comment: String = "Oszczędzałeś w co najmniej 12 różnych tygodniach."
+	if regular_score < 65.0:
+		regular_comment = "Wpłaty były zbyt rzadkie. Regularność jest ważniejsza niż jedna duża wpłata na końcu."
+	elif regular_score < 90.0:
+		regular_comment = "Oszczędzałeś kilka razy, ale nawyk nie był jeszcze wystarczająco regularny."
+
+	var debt_score: float = 100.0
+	debt_score -= min(55.0, float(debt) / monthly_expenses * 25.0)
+	debt_score -= min(36.0, float(missed_loan_payments) * 12.0)
+	debt_score -= min(15.0, float(total_loan_interest_charged) / float(max(1, get_monthly_income())) * 40.0)
+	debt_score -= min(15.0, float(chapter_stats.get("life_events_financed_by_loan", 0)) * 5.0)
+	var debt_comment: String = "Dług jest pod kontrolą, a raty nie zagroziły budżetowi."
+	if debt_score < 65.0:
+		debt_comment = "Dług, odsetki lub brakujące raty mocno obciążyły wynik. Pożyczka powinna być planem awaryjnym."
+	elif debt_score < 90.0:
+		debt_comment = "Pożyczka pomogła w płynności, ale jej koszt obniżył ocenę zarządzania długiem."
+
+	var recorded_weeks: int = max(1, int(chapter_stats.get("weeks_recorded", 0)))
+	var safe_ratio: float = float(chapter_stats.get("safe_liquidity_weeks", 0)) / float(recorded_weeks)
+	var critical_ratio: float = float(chapter_stats.get("critical_liquidity_weeks", 0)) / float(recorded_weeks)
+	var liquidity_score: float = (
+		clampf(safe_ratio, 0.0, 1.0) * 55.0
+		+ clampf(liquid_months / 2.0, 0.0, 1.0) * 30.0
+		+ (1.0 - clampf(critical_ratio, 0.0, 1.0)) * 15.0
+	)
+	var liquidity_comment: String = "Przez większość roku zachowałeś środki dostępne na bieżące potrzeby."
+	if liquidity_score < 65.0:
+		liquidity_comment = "Zbyt często brakowało łatwo dostępnych pieniędzy. Nie inwestuj całej gotówki naraz."
+	elif liquidity_score < 90.0:
+		liquidity_comment = "Płynność była zwykle wystarczająca, lecz pojawiały się tygodnie z małym marginesem bezpieczeństwa."
+
+	var max_companies: int = int(chapter_stats.get("maximum_owned_companies", get_owned_company_count()))
+	var investment_score: float = 20.0
+	var total_trading: int = int(chapter_stats.get("total_stock_purchases", 0))
+	if first_stock_bought or total_trading > 0:
+		var diversification_points: float = clampf(float(max_companies) / float(REQUIRED_COMPANIES), 0.0, 1.0) * 50.0
+		var investable_assets: float = max(1.0, liquid_assets + get_all_stock_value())
+		var stock_share: float = get_all_stock_value() / investable_assets
+		var allocation_points: float = 25.0
+		if stock_share > 0.85:
+			allocation_points = 8.0
+		elif stock_share > 0.65:
+			allocation_points = 18.0
+		investment_score = 25.0 + diversification_points + allocation_points
+	var investment_comment: String = "Portfel był zdywersyfikowany, a inwestycje nie wyparły całej poduszki."
+	if investment_score < 65.0:
+		investment_comment = "Pominąłeś inwestowanie albo portfel był zbyt skupiony w jednym miejscu."
+	elif investment_score < 90.0:
+		investment_comment = "Masz doświadczenie z akcjami, ale dywersyfikacja lub udział inwestycji w majątku wymaga poprawy."
+
+	var total_risk_choices: int = (
+		int(chapter_stats.get("low_risk_decisions", 0))
+		+ int(chapter_stats.get("medium_risk_decisions", 0))
+		+ int(chapter_stats.get("high_risk_decisions", 0))
+	)
+	var decision_score: float = 60.0
+	if total_risk_choices > 0:
+		decision_score = 70.0 + min(20.0, float(total_risk_choices) * 2.0)
+		decision_score += min(10.0, float(chapter_stats.get("low_risk_decisions", 0)))
+		decision_score -= float(chapter_stats.get("unsafe_high_risk_decisions", 0)) * 14.0
+		decision_score -= float(chapter_stats.get("life_events_financed_by_loan", 0)) * 6.0
+	var decision_comment: String = "Podejmowałeś decyzje adekwatne do swojej sytuacji, niezależnie od losowych rezultatów."
+	if decision_score < 65.0:
+		decision_comment = "Kilka ryzykownych decyzji podjąłeś bez wystarczającej poduszki albo przy aktywnym długu."
+	elif decision_score < 90.0:
+		decision_comment = "Większość wyborów była rozsądna, ale niektóre ryzyka nie pasowały do aktualnej sytuacji."
+
+	var categories: Array = [
+		_evaluation_category("Poduszka bezpieczeństwa", emergency_score, emergency_comment),
+		_evaluation_category("Regularne oszczędzanie", regular_score, regular_comment),
+		_evaluation_category("Zarządzanie długiem", debt_score, debt_comment),
+		_evaluation_category("Płynność finansowa", liquidity_score, liquidity_comment),
+		_evaluation_category("Inwestowanie i dywersyfikacja", investment_score, investment_comment),
+		_evaluation_category("Jakość decyzji", decision_score, decision_comment)
+	]
+	var score_sum: int = 0
+	var strengths: PackedStringArray = []
+	var improvements: PackedStringArray = []
+	for category_value in categories:
+		var category: Dictionary = category_value
+		var category_score: int = int(category["score"])
+		score_sum += category_score
+		if category_score >= 80:
+			strengths.append(str(category["name"]))
+		elif category_score < 65:
+			improvements.append(str(category["name"]))
+	var overall_score: int = roundi(float(score_sum) / float(categories.size()))
+	return {
+		"score": overall_score,
+		"grade": _score_grade(overall_score),
+		"categories": categories,
+		"strengths": strengths,
+		"improvements": improvements
+	}
+
+
+func get_chapter_summary() -> String:
+	var evaluation: Dictionary = get_chapter_evaluation()
+	var category_lines: PackedStringArray = []
+	for category_value in evaluation["categories"]:
+		var category: Dictionary = category_value
+		category_lines.append("%s — %s (%d/100)\n%s" % [
+			str(category["name"]),
+			str(category["grade"]),
+			int(category["score"]),
+			str(category["comment"])
+		])
+
+	var strengths: PackedStringArray = evaluation["strengths"]
+	var improvements: PackedStringArray = evaluation["improvements"]
+	var strength_text: String = ", ".join(strengths) if not strengths.is_empty() else "Najpierw zbuduj stabilne podstawy — każdy wynik można poprawić w kolejnej próbie."
+	var improvement_text: String = ", ".join(improvements) if not improvements.is_empty() else "Brak słabych kategorii. Spróbuj utrzymać ten wynik przy innych zdarzeniach."
+	var tracking_start: int = int(chapter_stats.get("tracking_started_week", 0))
+	var migration_note: String = ""
+	if tracking_start > 0:
+		migration_note = "\nUwaga: szczegółowe statystyki zaczęto zbierać od tygodnia %d po aktualizacji zapisu.\n" % (tracking_start + 1)
 
 	return (
-		"Minął pełny rok — 48 tygodni pierwszego rozdziału.\n\n"
-		+ "Wykonane cele: %d/%d\n" % [completed, total_goals]
+		"OCENA KOŃCOWA: %s • %d/100\n\n" % [str(evaluation["grade"]), int(evaluation["score"])]
+		+ "OCENY W SZEŚCIU OBSZARACH\n\n"
+		+ "\n\n".join(category_lines)
+		+ "\n\nSTATYSTYKI ROKU\n"
 		+ "Majątek netto: %s M$\n" % format_money_decimal(get_net_worth())
-		+ "Oszczędności: %s M$\n" % format_money_decimal(savings_balance)
-		+ "Wartość akcji: %s M$\n" % format_money_decimal(get_all_stock_value())
-		+ "Wynik posiadanych akcji: %s M$\n" % format_money_decimal(get_total_unrealized_profit())
-		+ "Wynik ze sprzedaży akcji: %s M$\n" % format_money_decimal(get_total_realized_profit())
-		+ "Dług: %s M$\n" % format_money(debt)
-		+ "Decyzje fabularne: %d/%d\n" % [story_decisions_resolved, StoryData.get_decision_count()]
-		+ "Naliczane odsetki od pożyczek: %s M$\n" % format_money(total_loan_interest_charged)
-		+ "Pełne raty / opóźnione raty: %d / %d\n\n" % [loan_payments_made, missed_loan_payments]
-		+ assessment
+		+ "Dochody / stałe wydatki: %s / %s M$\n" % [format_money(int(chapter_stats.get("total_income_received", 0))), format_money(int(chapter_stats.get("total_expenses_paid", 0)))]
+		+ "Wpłaty / wypłaty oszczędności: %s / %s M$\n" % [format_money_decimal(float(chapter_stats.get("total_savings_deposited", 0.0))), format_money_decimal(float(chapter_stats.get("total_savings_withdrawn", 0.0)))]
+		+ "Najniższa płynność: %s M$ • najwyższy dług: %s M$\n" % [format_money_decimal(float(chapter_stats.get("minimum_liquid_assets", 0.0))), format_money(int(chapter_stats.get("peak_debt", 0)))]
+		+ "Odsetki od długu: %s M$ • odsetki z oszczędności: %s M$\n" % [format_money(total_loan_interest_charged), format_money_decimal(float(chapter_stats.get("total_savings_interest", 0.0)))]
+		+ "Wydarzenia opłacone gotówką / oszczędnościami / długiem: %d / %d / %d\n" % [int(chapter_stats.get("life_events_paid_cash", 0)), int(chapter_stats.get("life_events_paid_savings", 0)), int(chapter_stats.get("life_events_financed_by_loan", 0))]
+		+ "Decyzje niskiego / średniego / wysokiego ryzyka: %d / %d / %d\n" % [int(chapter_stats.get("low_risk_decisions", 0)), int(chapter_stats.get("medium_risk_decisions", 0)), int(chapter_stats.get("high_risk_decisions", 0))]
+		+ migration_note
+		+ "\nCO POSZŁO DOBRZE\n" + strength_text
+		+ "\n\nCO WARTO POPRAWIĆ\n" + improvement_text
+		+ "\n\nLEKCJA\nDobry losowy wynik nie zawsze oznacza dobrą decyzję, a strata nie zawsze oznacza błąd. Gra ocenia przede wszystkim ryzyko podjęte przy Twojej płynności, długu i poduszce bezpieczeństwa."
 	)
 
 
@@ -1250,11 +1686,14 @@ func advance_time() -> String:
 
 	var savings_interest: float = savings_balance * SAVINGS_MONTHLY_RATE
 	savings_balance += savings_interest
+	_add_stat("total_savings_interest", savings_interest)
 
 	var current_income: int = get_monthly_income()
 	var current_expenses: int = get_monthly_expenses()
 	cash += current_income
 	cash -= current_expenses
+	_add_stat("total_income_received", current_income)
+	_add_stat("total_expenses_paid", current_expenses)
 
 	if current_month > 12:
 		current_month = 1

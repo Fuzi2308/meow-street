@@ -125,11 +125,246 @@ const STORY_DECISIONS = {
 }
 
 
+# Profile ryzyka są oddzielone od treści decyzji, aby łatwo balansować szanse
+# bez przepisywania całej fabuły. Wynik każdej opcji jest losowany w momencie
+# pojawienia się decyzji i zapisywany razem ze stanem gry.
+const CHOICE_RISK_PROFILES = {
+	"first_plan": [
+		{"risk": "NISKIE", "risk_note": "Pewny skutek: większa poduszka, ale mniej gotówki."},
+		{"risk": "NISKIE", "risk_note": "Pewny koszt bez późniejszego losowania."},
+		{"risk": "NISKIE", "risk_note": "Brak kosztu, ale pieniądze nie są oddzielone od wydatków."}
+	],
+	"career_course": [
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "70%: dochód +250 M$ • 20%: +150 M$ • 10%: brak podwyżki.",
+			"outcomes": [
+				{"weight": 70, "name": "Pełny efekt kursu", "delayed_effects": [{"delay_weeks": 8, "effects": {"monthly_income_bonus": 250}, "report": "Kurs intensywny przyniósł pełny efekt. Dochód rośnie o 250 M$ miesięcznie."}]},
+				{"weight": 20, "name": "Częściowy efekt kursu", "delayed_effects": [{"delay_weeks": 8, "effects": {"monthly_income_bonus": 150}, "report": "Kurs intensywny pomógł częściowo. Dochód rośnie o 150 M$ miesięcznie."}]},
+				{"weight": 10, "name": "Brak wzrostu dochodu", "delayed_effects": [{"delay_weeks": 8, "effects": {}, "report": "Kurs poszerzył wiedzę, ale na razie nie zwiększył dochodu."}]}
+			]
+		},
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "75%: dochód +100 M$ • 20%: +50 M$ • 5%: brak podwyżki.",
+			"outcomes": [
+				{"weight": 75, "name": "Pełny efekt kursu", "delayed_effects": [{"delay_weeks": 6, "effects": {"monthly_income_bonus": 100}, "report": "Kurs podstawowy przyniósł zakładany efekt. Dochód rośnie o 100 M$ miesięcznie."}]},
+				{"weight": 20, "name": "Częściowy efekt kursu", "delayed_effects": [{"delay_weeks": 6, "effects": {"monthly_income_bonus": 50}, "report": "Kurs podstawowy pomógł częściowo. Dochód rośnie o 50 M$ miesięcznie."}]},
+				{"weight": 5, "name": "Brak wzrostu dochodu", "delayed_effects": [{"delay_weeks": 6, "effects": {}, "report": "Kurs podstawowy nie przełożył się jeszcze na wyższy dochód."}]}
+			]
+		},
+		{"risk": "NISKIE", "risk_note": "Nie tracisz gotówki, ale rezygnujesz z możliwego wzrostu dochodu."}
+	],
+	"work_laptop": [
+		{"risk": "NISKIE", "risk_note": "Pewny koszt i przewidywalny wzrost dochodu."},
+		{
+			"risk": "WYSOKIE",
+			"risk_note": "55%: brak awarii • 30%: koszt 450 M$ • 15%: koszt 900 M$.",
+			"outcomes": [
+				{"weight": 55, "name": "Naprawa trwała", "delayed_effects": [{"delay_weeks": 10, "effects": {}, "report": "Naprawiony laptop nadal działa. Nie ponosisz kolejnego kosztu."}]},
+				{"weight": 30, "name": "Kolejna naprawa", "delayed_effects": [{"delay_weeks": 10, "effects": {"mandatory_cost": 450}, "report": "Laptop ponownie się zepsuł. Naprawa kosztowała 450 M$."}]},
+				{"weight": 15, "name": "Poważna awaria", "delayed_effects": [{"delay_weeks": 10, "effects": {"mandatory_cost": 900}, "report": "Laptop uległ poważnej awarii. Pilny koszt wyniósł 900 M$."}]}
+			]
+		},
+		{"risk": "ŚREDNIE", "risk_note": "Sprzęt pomaga w pracy, ale dług obciąża każdy kolejny tydzień."}
+	],
+	"housing": [
+		{"risk": "NISKIE", "risk_note": "Duży koszt początkowy, ale przewidywalna oszczędność."},
+		{"risk": "NISKIE", "risk_note": "Brak zmiany kosztów i brak ryzyka przeprowadzki."},
+		{
+			"risk": "WYSOKIE",
+			"risk_note": "45%: bez napraw • 35%: koszt 500 M$ • 20%: koszt 1 000 M$.",
+			"outcomes": [
+				{"weight": 45, "name": "Brak ukrytych wad", "delayed_effects": [{"delay_weeks": 12, "effects": {}, "report": "Tanie mieszkanie nie ujawniło poważnych wad. Unikasz dodatkowego kosztu."}]},
+				{"weight": 35, "name": "Drobna wada", "delayed_effects": [{"delay_weeks": 12, "effects": {"mandatory_cost": 500}, "report": "Ukryta wada mieszkania wymaga naprawy za 500 M$."}]},
+				{"weight": 20, "name": "Poważna wada", "delayed_effects": [{"delay_weeks": 12, "effects": {"mandatory_cost": 1000}, "report": "Tanie mieszkanie wymaga pilnego remontu za 1 000 M$."}]}
+			]
+		}
+	],
+	"hot_tip": [
+		{
+			"risk": "WYSOKIE",
+			"risk_note": "25%: +18% • 20%: +5% • 55%: -15% kursu PAW.",
+			"outcomes": [
+				{"weight": 25, "name": "Plotka się potwierdziła", "delayed_effects": [{"delay_weeks": 4, "effects": {"company_price_change": {"company_id": "pawphone", "percent": 18}}, "report": "Plotka o PawPhone się potwierdziła. Kurs rośnie dodatkowo o 18%."}]},
+				{"weight": 20, "name": "Niewielki wzrost", "delayed_effects": [{"delay_weeks": 4, "effects": {"company_price_change": {"company_id": "pawphone", "percent": 5}}, "report": "PawPhone rośnie dodatkowo o 5%, znacznie mniej od obietnic."}]},
+				{"weight": 55, "name": "Plotka była fałszywa", "delayed_effects": [{"delay_weeks": 4, "effects": {"company_price_change": {"company_id": "pawphone", "percent": -15}}, "report": "Plotka była przesadzona. PawPhone spada dodatkowo o 15%."}]}
+			]
+		},
+		{
+			"risk": "WYSOKIE",
+			"risk_note": "25%: +18% • 20%: +5% • 55%: -15%; ryzykujesz mniejszą kwotę.",
+			"outcomes": [
+				{"weight": 25, "name": "Plotka się potwierdziła", "delayed_effects": [{"delay_weeks": 4, "effects": {"company_price_change": {"company_id": "pawphone", "percent": 18}}, "report": "Plotka o PawPhone się potwierdziła. Kurs rośnie dodatkowo o 18%."}]},
+				{"weight": 20, "name": "Niewielki wzrost", "delayed_effects": [{"delay_weeks": 4, "effects": {"company_price_change": {"company_id": "pawphone", "percent": 5}}, "report": "PawPhone rośnie dodatkowo o 5%, znacznie mniej od obietnic."}]},
+				{"weight": 55, "name": "Plotka była fałszywa", "delayed_effects": [{"delay_weeks": 4, "effects": {"company_price_change": {"company_id": "pawphone", "percent": -15}}, "report": "Plotka była przesadzona. PawPhone spada dodatkowo o 15%."}]}
+			]
+		},
+		{"risk": "NISKIE", "risk_note": "Nie ryzykujesz kapitału na podstawie niepotwierdzonej informacji."}
+	],
+	"subscriptions": [
+		{"risk": "NISKIE", "risk_note": "Pewne obniżenie regularnych wydatków."},
+		{"risk": "NISKIE", "risk_note": "Brak natychmiastowej zmiany, ale opłaty pozostają."},
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "70%: dochód +140 M$ • 20%: +70 M$ • 10%: brak wzrostu.",
+			"outcomes": [
+				{"weight": 70, "name": "Nauka wykorzystana", "delayed_effects": [{"delay_weeks": 8, "effects": {"monthly_income_bonus": 140}, "report": "Platforma edukacyjna przyniosła efekty. Dochód rośnie o 140 M$ miesięcznie."}]},
+				{"weight": 20, "name": "Częściowy efekt", "delayed_effects": [{"delay_weeks": 8, "effects": {"monthly_income_bonus": 70}, "report": "Nauka pomogła częściowo. Dochód rośnie o 70 M$ miesięcznie."}]},
+				{"weight": 10, "name": "Brak efektu finansowego", "delayed_effects": [{"delay_weeks": 8, "effects": {}, "report": "Subskrypcja nie przełożyła się na wyższy dochód."}]}
+			]
+		}
+	],
+	"promotion": [
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "65%: dochód +350 M$ • 25%: +180 M$ • 10%: brak awansu.",
+			"outcomes": [
+				{"weight": 65, "name": "Awans", "delayed_effects": [{"delay_weeks": 8, "effects": {"monthly_income_bonus": 350}, "report": "Zdobyłeś awans. Dochód rośnie o 350 M$ miesięcznie."}]},
+				{"weight": 25, "name": "Mniejsza podwyżka", "delayed_effects": [{"delay_weeks": 8, "effects": {"monthly_income_bonus": 180}, "report": "Nie zdobyłeś stanowiska, ale otrzymałeś podwyżkę 180 M$ miesięcznie."}]},
+				{"weight": 10, "name": "Brak awansu", "delayed_effects": [{"delay_weeks": 8, "effects": {}, "report": "Rekrutacja zakończyła się bez awansu i bez podwyżki."}]}
+			]
+		},
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "50%: dochód +120 M$ • 30%: +60 M$ • 20%: brak podwyżki.",
+			"outcomes": [
+				{"weight": 50, "name": "Podwyżka", "delayed_effects": [{"delay_weeks": 8, "effects": {"monthly_income_bonus": 120}, "report": "Otrzymałeś podwyżkę. Dochód rośnie o 120 M$ miesięcznie."}]},
+				{"weight": 30, "name": "Mała podwyżka", "delayed_effects": [{"delay_weeks": 8, "effects": {"monthly_income_bonus": 60}, "report": "Otrzymałeś mniejszą podwyżkę: 60 M$ miesięcznie."}]},
+				{"weight": 20, "name": "Brak podwyżki", "delayed_effects": [{"delay_weeks": 8, "effects": {}, "report": "Podstawowe przygotowanie nie wystarczyło do zdobycia podwyżki."}]}
+			]
+		},
+		{"risk": "NISKIE", "risk_note": "Nie ponosisz kosztu, ale nie wykorzystujesz szansy na wyższy dochód."}
+	],
+	"family_help": [
+		{
+			"risk": "WYSOKIE",
+			"risk_note": "65%: zwrot 800 M$ • 25%: zwrot 400 M$ • 10%: brak zwrotu.",
+			"outcomes": [
+				{"weight": 65, "name": "Pełny zwrot", "delayed_effects": [{"delay_weeks": 8, "effects": {"cash": 800}, "report": "Pożyczone pieniądze wróciły z podziękowaniem: +800 M$."}]},
+				{"weight": 25, "name": "Częściowy zwrot", "delayed_effects": [{"delay_weeks": 8, "effects": {"cash": 400}, "report": "Bliska osoba oddała tylko część pieniędzy: +400 M$."}]},
+				{"weight": 10, "name": "Brak zwrotu", "delayed_effects": [{"delay_weeks": 8, "effects": {}, "report": "Pożyczone 700 M$ nie wróciło w uzgodnionym terminie."}]}
+			]
+		},
+		{"risk": "NISKIE", "risk_note": "Koszt jest pewny i nie oczekujesz zwrotu."},
+		{"risk": "NISKIE", "risk_note": "Zachowujesz środki i własną płynność."}
+	],
+	"insurance": [
+		{
+			"risk": "NISKIE",
+			"risk_note": "65%: brak awarii • 35%: koszt własny 200 M$; składka pozostaje.",
+			"outcomes": [
+				{"weight": 65, "name": "Brak awarii", "delayed_effects": [{"delay_weeks": 8, "effects": {}, "report": "W tym okresie nie doszło do awarii. Ochrona nie była potrzebna."}]},
+				{"weight": 35, "name": "Awaria objęta ochroną", "delayed_effects": [{"delay_weeks": 8, "effects": {"mandatory_cost": 200}, "report": "Doszło do awarii, ale ubezpieczenie ograniczyło koszt do 200 M$."}]}
+			]
+		},
+		{
+			"risk": "WYSOKIE",
+			"risk_note": "65%: brak awarii • 25%: koszt 600 M$ • 10%: koszt 1 200 M$.",
+			"outcomes": [
+				{"weight": 65, "name": "Brak awarii", "delayed_effects": [{"delay_weeks": 8, "effects": {}, "report": "Sprzęt działa bez awarii. Tym razem uniknąłeś kosztu."}]},
+				{"weight": 25, "name": "Mniejsza awaria", "delayed_effects": [{"delay_weeks": 8, "effects": {"mandatory_cost": 600}, "report": "Nieubezpieczona awaria kosztowała 600 M$."}]},
+				{"weight": 10, "name": "Poważna awaria", "delayed_effects": [{"delay_weeks": 8, "effects": {"mandatory_cost": 1200}, "report": "Poważna nieubezpieczona awaria kosztowała 1 200 M$."}]}
+			]
+		},
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "65%: rezerwa zostaje • 25%: koszt 300 M$ • 10%: koszt 600 M$.",
+			"outcomes": [
+				{"weight": 65, "name": "Rezerwa niewykorzystana", "delayed_effects": [{"delay_weeks": 8, "effects": {}, "report": "Nie doszło do awarii. Rezerwa 600 M$ nadal pracuje na koncie oszczędnościowym."}]},
+				{"weight": 25, "name": "Drobna awaria", "delayed_effects": [{"delay_weeks": 8, "effects": {"savings_cost": 300}, "report": "Drobna awaria kosztowała 300 M$; środki pobrano najpierw z rezerwy."}]},
+				{"weight": 10, "name": "Poważna awaria", "delayed_effects": [{"delay_weeks": 8, "effects": {"savings_cost": 600}, "report": "Poważna awaria wykorzystała całą rezerwę 600 M$."}]}
+			]
+		}
+	],
+	"freelance": [
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "60%: dochód +250 M$ • 30%: +150 M$ • 10%: brak zleceń.",
+			"outcomes": [
+				{"weight": 60, "name": "Dużo zleceń", "delayed_effects": [{"delay_weeks": 4, "effects": {"monthly_income_bonus": 250}, "report": "Profesjonalne narzędzia przyciągnęły zlecenia. Dochód rośnie o 250 M$ miesięcznie."}]},
+				{"weight": 30, "name": "Kilka zleceń", "delayed_effects": [{"delay_weeks": 4, "effects": {"monthly_income_bonus": 150}, "report": "Pojawiło się kilka zleceń. Dochód rośnie o 150 M$ miesięcznie."}]},
+				{"weight": 10, "name": "Brak zleceń", "delayed_effects": [{"delay_weeks": 4, "effects": {}, "report": "Mimo dobrych narzędzi nie udało się jeszcze pozyskać zleceń."}]}
+			]
+		},
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "50%: dochód +80 M$ • 30%: +40 M$ • 20%: brak zleceń.",
+			"outcomes": [
+				{"weight": 50, "name": "Regularne małe zlecenia", "delayed_effects": [{"delay_weeks": 4, "effects": {"monthly_income_bonus": 80}, "report": "Podstawowe narzędzia wystarczyły. Dochód rośnie o 80 M$ miesięcznie."}]},
+				{"weight": 30, "name": "Pojedyncze zlecenia", "delayed_effects": [{"delay_weeks": 4, "effects": {"monthly_income_bonus": 40}, "report": "Pojawiły się pojedyncze zlecenia. Dochód rośnie o 40 M$ miesięcznie."}]},
+				{"weight": 20, "name": "Brak zleceń", "delayed_effects": [{"delay_weeks": 4, "effects": {}, "report": "Podstawowe narzędzia nie wystarczyły jeszcze do zdobycia klientów."}]}
+			]
+		},
+		{"risk": "NISKIE", "risk_note": "Nie ponosisz kosztu, ale nie tworzysz dodatkowego źródła dochodu."}
+	],
+	"market_panic": [
+		{
+			"risk": "WYSOKIE",
+			"risk_note": "Sprzedaż jest nieodwracalna • 50%: rynek +10% • 25%: -8% • 25%: bez zmiany.",
+			"outcomes": [
+				{"weight": 50, "name": "Odbicie rynku", "delayed_effects": [{"delay_weeks": 4, "effects": {"all_company_change_percent": 10}, "report": "Rynek odbił dodatkowo o 10%. Sprzedany portfel nie uczestniczy już w tym ruchu."}]},
+				{"weight": 25, "name": "Dalszy spadek", "delayed_effects": [{"delay_weeks": 4, "effects": {"all_company_change_percent": -8}, "report": "Rynek spadł dodatkowo o 8%. Sprzedaż ograniczyła dalszą ekspozycję."}]},
+				{"weight": 25, "name": "Stabilizacja", "delayed_effects": [{"delay_weeks": 4, "effects": {}, "report": "Rynek ustabilizował się bez dodatkowego silnego ruchu."}]}
+			]
+		},
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "50%: rynek +10% • 25%: rynek -8% • 25%: bez zmiany.",
+			"outcomes": [
+				{"weight": 50, "name": "Odbicie rynku", "delayed_effects": [{"delay_weeks": 4, "effects": {"all_company_change_percent": 10}, "report": "Nastroje poprawiły się. Rynek odbija dodatkowo o 10%."}]},
+				{"weight": 25, "name": "Dalszy spadek", "delayed_effects": [{"delay_weeks": 4, "effects": {"all_company_change_percent": -8}, "report": "Negatywne nastroje trwają. Rynek spada dodatkowo o 8%."}]},
+				{"weight": 25, "name": "Stabilizacja", "delayed_effects": [{"delay_weeks": 4, "effects": {}, "report": "Rynek ustabilizował się bez dodatkowego silnego ruchu."}]}
+			]
+		},
+		{
+			"risk": "ŚREDNIE",
+			"risk_note": "Mniejsza ekspozycja • 50%: rynek +10% • 25%: -8% • 25%: bez zmiany.",
+			"outcomes": [
+				{"weight": 50, "name": "Odbicie rynku", "delayed_effects": [{"delay_weeks": 4, "effects": {"all_company_change_percent": 10}, "report": "Rynek odbija dodatkowo o 10%; zachowana połowa portfela uczestniczy we wzroście."}]},
+				{"weight": 25, "name": "Dalszy spadek", "delayed_effects": [{"delay_weeks": 4, "effects": {"all_company_change_percent": -8}, "report": "Rynek spada dodatkowo o 8%; sprzedaż połowy ograniczyła stratę."}]},
+				{"weight": 25, "name": "Stabilizacja", "delayed_effects": [{"delay_weeks": 4, "effects": {}, "report": "Rynek ustabilizował się bez dodatkowego silnego ruchu."}]}
+			]
+		}
+	],
+	"year_end": [
+		{"risk": "NISKIE", "risk_note": "Pewne zwiększenie oszczędności kosztem bieżącej gotówki."},
+		{"risk": "NISKIE", "risk_note": "Pewne zmniejszenie długu i przyszłych odsetek."},
+		{"risk": "NISKIE", "risk_note": "Zachowujesz płynność • brak wzrostu oszczędności • brak spłaty długu."}
+	]
+}
+
+
 static func get_decision_for_week(chapter_week: int) -> Dictionary:
 	if not STORY_DECISIONS.has(chapter_week):
 		return {}
-	return STORY_DECISIONS[chapter_week].duplicate(true)
+	var decision: Dictionary = STORY_DECISIONS[chapter_week].duplicate(true)
+	var decision_id: String = str(decision.get("id", ""))
+	var profiles: Array = CHOICE_RISK_PROFILES.get(decision_id, [])
+	var choices: Array = decision.get("choices", [])
+	for choice_index in range(choices.size()):
+		var choice: Dictionary = choices[choice_index]
+		choice["risk"] = "NISKIE"
+		choice["risk_note"] = "Skutek tej opcji jest przewidywalny."
+		if choice_index < profiles.size():
+			var profile: Dictionary = profiles[choice_index]
+			for profile_key in profile.keys():
+				choice[profile_key] = profile[profile_key]
+		choices[choice_index] = choice
+	decision["choices"] = choices
+	return decision
 
 
 static func get_decision_count() -> int:
 	return STORY_DECISIONS.size()
+
+
+static func get_decision_summary_by_id(decision_id: String) -> Dictionary:
+	for week_value in STORY_DECISIONS.keys():
+		var decision: Dictionary = STORY_DECISIONS[week_value]
+		if str(decision.get("id", "")) == decision_id:
+			return {
+				"week": int(week_value),
+				"title": str(decision.get("title", "DECYZJA"))
+			}
+	return {}

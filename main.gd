@@ -11,7 +11,10 @@ const SCREEN_INDEXES = {
 	"savings": 1,
 	"portfolio": 2,
 	"budget": 3,
-	"goals": 4
+	"goals": 4,
+	"history": 5,
+	"city": 6,
+	"phone": 7
 }
 
 const TutorialData = preload("res://scripts/tutorial_data.gd")
@@ -31,6 +34,7 @@ const TUTORIAL_STEPS = TutorialData.STEPS
 @onready var savings_nav_button: Button = $PageMargin/Content/BottomNavigation/SavingsNavButton
 @onready var budget_nav_button: Button = $PageMargin/Content/BottomNavigation/BudgetNavButton
 @onready var goals_nav_button: Button = $PageMargin/Content/BottomNavigation/GoalsNavButton
+@onready var history_nav_button: Button = $PageMargin/Content/BottomNavigation/HistoryNavButton
 
 @onready var news_label: Label = $PageMargin/Content/Pages/MarketPage/NewsLabel
 @onready var company_list: VBoxContainer = $PageMargin/Content/Pages/MarketPage/MarketScroll/CompanyList
@@ -67,6 +71,28 @@ const TUTORIAL_STEPS = TutorialData.STEPS
 @onready var goals_list_label: Label = $PageMargin/Content/Pages/GoalsPage/GoalsListLabel
 @onready var goals_advice_label: Label = $PageMargin/Content/Pages/GoalsPage/GoalsAdviceLabel
 
+@onready var history_stats_label: Label = $PageMargin/Content/Pages/HistoryPage/HistoryStatsLabel
+@onready var history_content_label: Label = $PageMargin/Content/Pages/HistoryPage/HistoryScroll/HistoryContentLabel
+
+@onready var city_status_label: Label = $PageMargin/Content/Pages/CityPage/CityStatusLabel
+@onready var apartment_button: Button = $PageMargin/Content/Pages/CityPage/CityPlacesGrid/ApartmentButton
+@onready var work_button: Button = $PageMargin/Content/Pages/CityPage/CityPlacesGrid/WorkButton
+@onready var bank_building_button: Button = $PageMargin/Content/Pages/CityPage/CityPlacesGrid/BankBuildingButton
+@onready var exchange_building_button: Button = $PageMargin/Content/Pages/CityPage/CityPlacesGrid/ExchangeBuildingButton
+@onready var shop_building_button: Button = $PageMargin/Content/Pages/CityPage/CityPlacesGrid/ShopBuildingButton
+@onready var park_building_button: Button = $PageMargin/Content/Pages/CityPage/CityPlacesGrid/ParkBuildingButton
+
+@onready var phone_notification_label: Label = $PageMargin/Content/Pages/PhonePage/PhoneNotificationLabel
+@onready var phone_bank_button: Button = $PageMargin/Content/Pages/PhonePage/PhoneAppsGrid/PhoneBankButton
+@onready var phone_market_button: Button = $PageMargin/Content/Pages/PhonePage/PhoneAppsGrid/PhoneMarketButton
+@onready var phone_portfolio_button: Button = $PageMargin/Content/Pages/PhonePage/PhoneAppsGrid/PhonePortfolioButton
+@onready var phone_budget_button: Button = $PageMargin/Content/Pages/PhonePage/PhoneAppsGrid/PhoneBudgetButton
+@onready var phone_goals_button: Button = $PageMargin/Content/Pages/PhonePage/PhoneAppsGrid/PhoneGoalsButton
+@onready var phone_history_button: Button = $PageMargin/Content/Pages/PhonePage/PhoneAppsGrid/PhoneHistoryButton
+
+@onready var city_nav_button: Button = $PageMargin/Content/BottomNavigation/CityNavButton
+@onready var phone_nav_button: Button = $PageMargin/Content/BottomNavigation/PhoneNavButton
+
 @onready var stock_detail_overlay: ColorRect = $StockDetailOverlay
 @onready var detail_back_button: Button = $StockDetailOverlay/DetailMargin/DetailContent/DetailTopBar/DetailBackButton
 @onready var detail_title_label: Label = $StockDetailOverlay/DetailMargin/DetailContent/DetailTitleLabel
@@ -99,8 +125,11 @@ const TUTORIAL_STEPS = TutorialData.STEPS
 @onready var summary_continue_button: Button = $WeekSummaryOverlay/SummaryMargin/SummaryContent/SummaryContinueButton
 
 @onready var event_overlay: ColorRect = $EventOverlay
+@onready var event_panel: PanelContainer = $EventOverlay/EventCenter/EventPanel
 @onready var event_title_label: Label = $EventOverlay/EventCenter/EventPanel/EventMargin/EventContent/EventTitleLabel
 @onready var event_description_label: Label = $EventOverlay/EventCenter/EventPanel/EventMargin/EventContent/EventDescriptionLabel
+@onready var chapter_summary_scroll: ScrollContainer = $EventOverlay/EventCenter/EventPanel/EventMargin/EventContent/ChapterSummaryScroll
+@onready var chapter_summary_label: Label = $EventOverlay/EventCenter/EventPanel/EventMargin/EventContent/ChapterSummaryScroll/ChapterSummaryLabel
 @onready var event_cost_label: Label = $EventOverlay/EventCenter/EventPanel/EventMargin/EventContent/EventCostLabel
 @onready var pay_cash_button: Button = $EventOverlay/EventCenter/EventPanel/EventMargin/EventContent/PayCashButton
 @onready var pay_savings_button: Button = $EventOverlay/EventCenter/EventPanel/EventMargin/EventContent/PaySavingsButton
@@ -131,7 +160,7 @@ var company_widgets: Dictionary = {}
 var portfolio_widgets: Dictionary = {}
 var navigation_buttons: Dictionary = {}
 var selected_company_id: String = ""
-var current_screen_id: String = "market"
+var current_screen_id: String = "city"
 
 
 func _ready() -> void:
@@ -140,18 +169,18 @@ func _ready() -> void:
 	pages.set_tab_title(2, "PORTFEL")
 	pages.set_tab_title(3, "BUDŻET")
 	pages.set_tab_title(4, "CELE")
+	pages.set_tab_title(5, "HISTORIA")
+	pages.set_tab_title(6, "MIASTO")
+	pages.set_tab_title(7, "TELEFON")
 
 	navigation_buttons = {
-		"market": market_nav_button,
-		"portfolio": portfolio_nav_button,
-		"savings": savings_nav_button,
-		"budget": budget_nav_button,
-		"goals": goals_nav_button
+		"city": city_nav_button,
+		"phone": phone_nav_button
 	}
 
 	_build_company_cards()
 	_connect_buttons()
-	_show_screen("market")
+	_show_screen("city")
 
 	if not GameState.state_changed.is_connected(update_ui):
 		GameState.state_changed.connect(update_ui)
@@ -165,6 +194,20 @@ func _connect_buttons() -> void:
 		var screen_id: String = str(screen_id_value)
 		var navigation_button: Button = navigation_buttons[screen_id]
 		navigation_button.pressed.connect(_on_navigation_pressed.bind(screen_id))
+
+	apartment_button.pressed.connect(_on_open_screen_pressed.bind("goals"))
+	work_button.pressed.connect(_on_open_screen_pressed.bind("budget"))
+	bank_building_button.pressed.connect(_on_open_screen_pressed.bind("savings"))
+	exchange_building_button.pressed.connect(_on_open_screen_pressed.bind("market"))
+	shop_building_button.pressed.connect(_on_locked_place_pressed.bind("Sklep"))
+	park_building_button.pressed.connect(_on_locked_place_pressed.bind("Park"))
+
+	phone_bank_button.pressed.connect(_on_open_screen_pressed.bind("savings"))
+	phone_market_button.pressed.connect(_on_open_screen_pressed.bind("market"))
+	phone_portfolio_button.pressed.connect(_on_open_screen_pressed.bind("portfolio"))
+	phone_budget_button.pressed.connect(_on_open_screen_pressed.bind("budget"))
+	phone_goals_button.pressed.connect(_on_open_screen_pressed.bind("goals"))
+	phone_history_button.pressed.connect(_on_open_screen_pressed.bind("history"))
 
 	deposit_button.pressed.connect(_on_deposit_button_pressed)
 	withdraw_button.pressed.connect(_on_withdraw_button_pressed)
@@ -302,6 +345,14 @@ func _build_portfolio_card(company_id: String, definition: Dictionary) -> void:
 
 func _on_navigation_pressed(screen_id: String) -> void:
 	_show_screen(screen_id)
+
+
+func _on_open_screen_pressed(screen_id: String) -> void:
+	_show_screen(screen_id)
+
+
+func _on_locked_place_pressed(place_name: String) -> void:
+	report_label.text = "%s zostanie odblokowany w kolejnych etapach gry." % place_name
 
 
 func _show_screen(screen_id: String) -> void:
@@ -703,7 +754,7 @@ func _on_restart_chapter_pressed() -> void:
 	GameState.start_new_game()
 	stock_detail_overlay.visible = false
 	week_summary_overlay.visible = false
-	_show_screen("market")
+	_show_screen("city")
 	report_label.text = "Rozdział rozpoczęty od nowa. Podejmij pierwsze decyzje finansowe."
 	update_tutorial_overlay()
 
@@ -713,7 +764,7 @@ func _on_continue_pressed() -> void:
 		start_overlay.visible = false
 		stock_detail_overlay.visible = false
 		week_summary_overlay.visible = false
-		_show_screen("market")
+		_show_screen("city")
 		report_label.text = "Wczytano zapis gry. Możesz kontynuować od ostatniej decyzji."
 		update_tutorial_overlay()
 		return
@@ -738,7 +789,7 @@ func _begin_new_game() -> void:
 	start_overlay.visible = false
 	stock_detail_overlay.visible = false
 	week_summary_overlay.visible = false
-	_show_screen("market")
+	_show_screen("city")
 	report_label.text = "Rozpoczęto nową grę. Postęp będzie zapisywany automatycznie."
 	update_tutorial_overlay()
 
@@ -792,7 +843,7 @@ func _on_tutorial_back_pressed() -> void:
 func _on_tutorial_next_pressed() -> void:
 	if GameState.tutorial_step >= TUTORIAL_STEPS.size() - 1:
 		GameState.complete_tutorial()
-		_show_screen("market")
+		_show_screen("city")
 		report_label.text = "Samouczek ukończony. Podejmij pierwszą decyzję finansową."
 		return
 	GameState.set_tutorial_step(GameState.tutorial_step + 1, TUTORIAL_STEPS.size())
@@ -800,7 +851,7 @@ func _on_tutorial_next_pressed() -> void:
 
 func _on_tutorial_skip_pressed() -> void:
 	GameState.complete_tutorial()
-	_show_screen("market")
+	_show_screen("city")
 	report_label.text = "Samouczek pominięty. Możesz uruchomić go ponownie z menu startowego."
 
 
@@ -830,6 +881,7 @@ func update_ui() -> void:
 	cash_label.text = "Gotówka: %s M$" % GameState.format_money(GameState.cash)
 	net_worth_label.text = "Majątek netto: %s M$" % GameState.format_money_decimal(net_worth)
 	news_label.text = "WIADOMOŚĆ TYGODNIA\n\n%s" % market_event["headline"]
+	update_world_hub_ui(market_event)
 
 	_update_company_cards()
 	savings_balance_label.text = "Saldo: %s M$" % GameState.format_money_decimal(GameState.savings_balance)
@@ -841,9 +893,39 @@ func update_ui() -> void:
 	update_portfolio_ui(net_worth)
 	update_budget_ui()
 	update_goals_ui()
+	update_history_ui()
 	update_event_overlay()
 	update_tutorial_overlay()
 	update_stock_detail()
+
+
+func update_world_hub_ui(market_event: Dictionary) -> void:
+	var status_lines: PackedStringArray = []
+	status_lines.append("Najważniejsza wiadomość: %s" % str(market_event.get("headline", "Brak nowych wiadomości.")))
+	if GameState.debt > 0:
+		status_lines.append("Aktywny dług: %s M$ — sprawdź bank albo budżet." % GameState.format_money(GameState.debt))
+	elif GameState.savings_balance < GameState.EMERGENCY_FUND_TARGET:
+		status_lines.append("Poduszka bezpieczeństwa: %s z %s M$." % [
+			GameState.format_money_decimal(GameState.savings_balance),
+			GameState.format_money(GameState.EMERGENCY_FUND_TARGET)
+		])
+	else:
+		status_lines.append("Poduszka bezpieczeństwa jest już zbudowana.")
+	city_status_label.text = "\n".join(status_lines)
+
+	var notifications: PackedStringArray = []
+	notifications.append("MeowNews: %s" % str(market_event.get("headline", "Brak nowych wiadomości.")))
+	if GameState.get_regular_saving_week_count() < GameState.REQUIRED_SAVING_WEEKS:
+		notifications.append("MeowBank: regularne wpłaty %d/%d tygodni." % [
+			GameState.get_regular_saving_week_count(),
+			GameState.REQUIRED_SAVING_WEEKS
+		])
+	if GameState.get_owned_company_count() < GameState.REQUIRED_COMPANIES:
+		notifications.append("Portfel: dywersyfikacja %d/%d firm." % [
+			GameState.get_owned_company_count(),
+			GameState.REQUIRED_COMPANIES
+		])
+	phone_notification_label.text = "\n".join(notifications)
 
 
 func _update_savings_controls(actions_blocked: bool) -> void:
@@ -1015,6 +1097,64 @@ func update_goals_ui() -> void:
 	goals_advice_label.text = "Rozdział zakończony. Wykonane cele: %d/%d." % [completed, total_goals] if GameState.chapter_finished else "Postęp: %d/%d. Cel 5 400 M$ jest ambitny i może wymagać kilku prób." % [completed, total_goals]
 
 
+func update_history_ui() -> void:
+	var decisions: Array = GameState.get_decision_history()
+	var pending: Array = GameState.get_scheduled_consequences()
+	var completed_consequences: Array = GameState.get_consequence_history()
+	history_stats_label.text = "Decyzje: %d • Oczekujące skutki: %d • Zrealizowane skutki: %d" % [
+		decisions.size(),
+		pending.size(),
+		completed_consequences.size()
+	]
+
+	var sections: PackedStringArray = []
+	if not pending.is_empty():
+		var pending_lines: PackedStringArray = ["OCZEKUJĄCE KONSEKWENCJE"]
+		for consequence_value in pending:
+			var consequence: Dictionary = consequence_value
+			pending_lines.append("• Tydzień %d — %s\n  Wybrana opcja: %s • ryzyko: %s" % [
+				int(consequence.get("due_week", 0)),
+				str(consequence.get("source_title", "DECYZJA")),
+				str(consequence.get("source_choice", "OPCJA")),
+				str(consequence.get("risk", "NISKIE")).to_lower()
+			])
+		sections.append("\n".join(pending_lines))
+
+	if decisions.is_empty():
+		sections.append("Nie podjąłeś jeszcze żadnej decyzji fabularnej. Po pierwszym wyborze zobaczysz tutaj jego koszt, poziom ryzyka i późniejszy rezultat.")
+	else:
+		var decision_lines: PackedStringArray = ["PODJĘTE DECYZJE"]
+		for decision_index in range(decisions.size() - 1, -1, -1):
+			var entry: Dictionary = decisions[decision_index]
+			var entry_text: String = (
+				"TYDZIEŃ %d • %s\n"
+				+ "Wybrano: %s\n"
+				+ "Ryzyko: %s\n"
+				+ "%s"
+			) % [
+				int(entry.get("week", 0)),
+				str(entry.get("title", "DECYZJA")),
+				str(entry.get("choice", "OPCJA")),
+				str(entry.get("risk", "NISKIE")),
+				str(entry.get("result", "Decyzja została zapisana."))
+			]
+			decision_lines.append(entry_text)
+		sections.append("\n\n".join(decision_lines))
+
+	if not completed_consequences.is_empty():
+		var consequence_lines: PackedStringArray = ["ZREALIZOWANE KONSEKWENCJE"]
+		for consequence_index in range(completed_consequences.size() - 1, -1, -1):
+			var completed: Dictionary = completed_consequences[consequence_index]
+			consequence_lines.append("TYDZIEŃ %d • %s\n%s" % [
+				int(completed.get("week", 0)),
+				str(completed.get("source_title", "DECYZJA")),
+				str(completed.get("report", "Skutek został zrealizowany."))
+			])
+		sections.append("\n\n".join(consequence_lines))
+
+	history_content_label.text = "\n\n────────────\n\n".join(sections)
+
+
 func update_event_overlay() -> void:
 	var show_summary: bool = GameState.chapter_finished
 	var show_feedback: bool = GameState.has_decision_feedback()
@@ -1028,11 +1168,25 @@ func update_event_overlay() -> void:
 	pay_cash_button.visible = true
 	pay_savings_button.visible = true
 	take_loan_button.visible = true
+	event_panel.custom_minimum_size = Vector2(610, 0)
+	event_description_label.visible = true
+	chapter_summary_scroll.visible = false
 	event_cost_label.add_theme_font_size_override("font_size", 24)
 	if show_summary:
-		event_title_label.text = "KONIEC ROZDZIAŁU 1"
-		event_description_label.text = GameState.get_chapter_summary()
-		event_cost_label.text = "Wynik celów: %d/%d" % [GameState.get_completed_goal_count(), GameState.get_goal_statuses().size()]
+		var evaluation: Dictionary = GameState.get_chapter_evaluation()
+		event_panel.custom_minimum_size = Vector2(610, 1120)
+		event_title_label.text = "PODSUMOWANIE PIERWSZEGO ROKU"
+		event_description_label.visible = false
+		chapter_summary_scroll.visible = true
+		chapter_summary_scroll.scroll_vertical = 0
+		chapter_summary_label.text = GameState.get_chapter_summary()
+		event_cost_label.text = "OCENA %s • %d/100 • CELE %d/%d" % [
+			str(evaluation["grade"]),
+			int(evaluation["score"]),
+			GameState.get_completed_goal_count(),
+			GameState.get_goal_statuses().size()
+		]
+		event_cost_label.add_theme_font_size_override("font_size", 20)
 		pay_cash_button.visible = false
 		pay_savings_button.visible = false
 		take_loan_button.visible = false
@@ -1043,6 +1197,8 @@ func update_event_overlay() -> void:
 		var lesson_parts: PackedStringArray = []
 		var future_note: String = str(feedback.get("future_note", ""))
 		var education: String = str(feedback.get("education", ""))
+		var feedback_risk: String = str(feedback.get("risk", "NISKIE"))
+		lesson_parts.append("RYZYKO WYBRANEJ OPCJI: " + feedback_risk)
 		if not future_note.is_empty():
 			lesson_parts.append(future_note)
 		if not education.is_empty():
@@ -1062,7 +1218,7 @@ func update_event_overlay() -> void:
 		var choice_buttons: Array[Button] = [pay_cash_button, pay_savings_button, take_loan_button]
 		event_title_label.text = str(decision.get("title", "DECYZJA TYGODNIA"))
 		event_description_label.text = str(decision.get("description", ""))
-		event_cost_label.text = "WYBIERZ JEDNĄ OPCJĘ. Nie każda korzyść lub strata pojawi się od razu."
+		event_cost_label.text = "PORÓWNAJ RYZYKO I MOŻLIWE WYNIKI. Losowy rezultat jest ustalany raz i zapisywany."
 		event_cost_label.add_theme_font_size_override("font_size", 18)
 		for choice_index in range(choice_buttons.size()):
 			var choice_button: Button = choice_buttons[choice_index]
@@ -1070,7 +1226,13 @@ func update_event_overlay() -> void:
 			if not choice_button.visible:
 				continue
 			var choice: Dictionary = choices[choice_index]
-			choice_button.text = str(choice.get("title", "OPCJA")) + "\n" + str(choice.get("details", ""))
+			var risk_note_text: String = str(choice.get("risk_note", "")).replace(" • ", "\n")
+			choice_button.text = (
+				str(choice.get("title", "OPCJA"))
+				+ "\n" + str(choice.get("details", ""))
+				+ "\nRYZYKO: " + str(choice.get("risk", "NISKIE"))
+				+ "\n" + risk_note_text
+			)
 			choice_button.disabled = not GameState.can_choose_story_option(choice_index)
 		return
 	var life_event: Dictionary = GameState.get_pending_life_event()
